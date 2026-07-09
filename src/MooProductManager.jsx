@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authAPI, productsAPI, salesAPI, bookingsAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
+import { authAPI, productsAPI, salesAPI, bookingsAPI, uploadAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
 
 const PINK = "#e91e8c";
 const LIGHT_PINK = "#fce4f3";
@@ -50,8 +50,9 @@ export default function MooProductManager() {
   const [connected, setConnected] = useState(true);
   const [toast, setToast] = useState(null);
   const [newProduct, setNewProduct] = useState({
-    name: "", category: "skincare", price: "", stock_quantity: "0", description: ""
+    name: "", category: "skincare", price: "", stock_quantity: "0", description: "", images: []
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
 
@@ -130,6 +131,21 @@ export default function MooProductManager() {
     setActiveTab("dashboard");
   }
 
+  async function handleImageUpload(file, onDone) {
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const res = await uploadAPI.image(file);
+      if (!res.success) throw new Error(res.message || "Upload failed");
+      onDone(res.url);
+      showToast("Image uploaded");
+    } catch (err) {
+      showToast(err.message || "Failed to upload image", "error");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   async function handleAddProduct() {
     if (!newProduct.name || !newProduct.price) return;
     try {
@@ -139,10 +155,10 @@ export default function MooProductManager() {
         price: parseFloat(newProduct.price),
         stock_quantity: parseInt(newProduct.stock_quantity, 10) || 0,
         short_desc: newProduct.description,
-        images: [],
+        images: newProduct.images,
       });
       setShowAddModal(false);
-      setNewProduct({ name: "", category: "skincare", price: "", stock_quantity: "0", description: "" });
+      setNewProduct({ name: "", category: "skincare", price: "", stock_quantity: "0", description: "", images: [] });
       showToast("Product added");
       loadProducts();
     } catch (err) {
@@ -702,6 +718,22 @@ export default function MooProductManager() {
               onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))}
               style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", marginBottom: 16, boxSizing: "border-box" }}
             />
+            <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 6 }}>PHOTO</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              {newProduct.images[0] && (
+                <img src={newProduct.images[0]} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid #e0e0e0" }} />
+              )}
+              <label style={{ padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 13, cursor: uploadingImage ? "wait" : "pointer", color: "#666" }}>
+                {uploadingImage ? "Uploading..." : newProduct.images[0] ? "Change photo" : "Upload photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingImage}
+                  onChange={e => handleImageUpload(e.target.files[0], url => setNewProduct(p => ({ ...p, images: [url] })))}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
                 <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 6 }}>CATEGORY</label>
@@ -736,6 +768,22 @@ export default function MooProductManager() {
               onChange={e => setSelectedProduct(p => ({ ...p, name: e.target.value }))}
               style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", marginBottom: 16, boxSizing: "border-box" }}
             />
+            <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 6 }}>PHOTO</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              {selectedProduct.images?.[0] && (
+                <img src={selectedProduct.images[0]} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid #e0e0e0" }} />
+              )}
+              <label style={{ padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 13, cursor: uploadingImage ? "wait" : "pointer", color: "#666" }}>
+                {uploadingImage ? "Uploading..." : selectedProduct.images?.[0] ? "Change photo" : "Upload photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingImage}
+                  onChange={e => handleImageUpload(e.target.files[0], url => setSelectedProduct(p => ({ ...p, images: [url, ...(p.images || []).slice(1)] })))}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
                 <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 6 }}>PRICE (N)</label>
