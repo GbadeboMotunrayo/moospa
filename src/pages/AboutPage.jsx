@@ -28,7 +28,7 @@ export default function AboutPage() {
             <span className="gradient-text">House of Moo</span>
           </h1>
           <p style={{ fontSize: 17, color: 'rgba(245,241,232,0.78)', lineHeight: 1.85, maxWidth: 440 }}>
-            A premium Nigerian brand built on trust, quality, and the belief that every woman deserves to feel her best.
+            Welcome to Houseofmooskincareandspa, where self-care meets confidence.
           </p>
         </div>
       </div>
@@ -37,21 +37,23 @@ export default function AboutPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, marginBottom: 80, alignItems: 'center' }}>
           <div>
             <div style={{ color: t.accent, fontSize: 12, letterSpacing: 4, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16 }}>Our Story</div>
-            <h2 style={{ fontSize: 36, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 20, lineHeight: 1.3 }}>Born from a Passion for Authentic Wellness</h2>
-            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9, marginBottom: 16 }}>House of Moo was founded with one simple mission: to give Nigerian women access to premium, authentic wellness and skincare products in a safe, private, and empowering environment.</p>
-            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9 }}>We believe that self-care is not a luxury. It is a necessity. Every product we carry is carefully sourced, tested for quality, and delivered with absolute discretion. Your privacy is our promise.</p>
+            <h2 style={{ fontSize: 36, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 20, lineHeight: 1.3 }}>Glow. Relax. Be You.</h2>
+            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9, marginBottom: 16 }}>We're more than just a spa — we're your home for glowing skin, relaxation, and body wellness. At houseofmoo, we believe everyone deserves to feel beautiful, pampered, and comfortable in their own skin.</p>
+            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9 }}>Whether you're coming in for a quick glow-up or a full day of pampering, our team is here to give you expert care in a clean, private, and welcoming space.</p>
           </div>
           <img src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=600&h=500&fit=crop" alt="About" style={{ width: '100%', height: 420, objectFit: 'cover', borderRadius: 10, border: `1px solid ${t.border}` }} />
         </div>
 
         <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: '48px', marginBottom: 80, textAlign: 'center' }}>
-          <div style={{ color: t.accent, fontSize: 12, letterSpacing: 4, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16 }}>Our Values</div>
-          <h2 style={{ fontSize: 32, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 40 }}>What We Stand For</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 32 }}>
+          <div style={{ color: t.accent, fontSize: 12, letterSpacing: 4, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16 }}>Our Services</div>
+          <h2 style={{ fontSize: 32, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 40 }}>Designed to Help You Look Good and Feel Even Better</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32 }}>
             {[
-              { title: 'Authenticity', desc: 'Every product is 100% genuine. We source directly from trusted manufacturers and never compromise on quality.' },
-              { title: 'Privacy', desc: 'Your business is yours alone. We use discreet packaging, plain billing names, and never share your data.' },
-              { title: 'Empowerment', desc: 'We believe in a woman\'s right to explore her wellness, sexuality, and beauty without judgment.' },
+              { title: 'Skin & Face', desc: 'Professional facials, body scrub, skin tag removal, bumps removal, and body screen treatments.' },
+              { title: 'Hands & Feet', desc: 'Luxury manicure and pedicure services.' },
+              { title: 'Body Wellness', desc: 'Relaxing massage and body therapy.' },
+              { title: 'Skincare Store', desc: 'Curated skincare products for all skin types to maintain your glow at home.' },
+              { title: 'Intimacy & Wellness', desc: 'Discreet selection of adult wellness products.' },
             ].map(v => (
               <div key={v.title}>
                 <div style={{ width: 48, height: 48, background: `${t.accent}18`, borderRadius: '50%', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
