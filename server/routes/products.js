@@ -1,5 +1,5 @@
 const express    = require('express');
-const db         = require('../config/db');
+const supabase   = require('../config/db');
 const requireAuth = require('../middleware/auth');
 const { requireRole } = require('../middleware/auth');
 const router     = express.Router();
@@ -15,14 +15,13 @@ function withDisplayStatus(p) {
 // GET /api/products — public, supports ?category=skincare&featured=true
 router.get('/', async (req, res) => {
   try {
-    let sql = 'SELECT * FROM products WHERE 1=1';
-    const params = [];
-    if (req.query.category) { sql += ' AND category = ?'; params.push(req.query.category); }
-    if (req.query.featured)  { sql += ' AND featured = 1'; }
-    sql += ' ORDER BY created_at DESC';
-    const [rows] = await db.query(sql, params);
-    const products = rows.map(withDisplayStatus);
-    res.json({ success: true, products });
+    let query = supabase.from('products').select('*');
+    if (req.query.category) query = query.eq('category', req.query.category);
+    if (req.query.featured)  query = query.eq('featured', true);
+    query = query.order('created_at', { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, products: data.map(withDisplayStatus) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -31,9 +30,10 @@ router.get('/', async (req, res) => {
 // GET /api/products/:id — public
 router.get('/:id', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ success: false, message: 'Product not found' });
-    res.json({ success: true, product: withDisplayStatus(rows[0]) });
+    const { data, error } = await supabase.from('products').select('*').eq('id', req.params.id).maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, product: withDisplayStatus(data) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -46,13 +46,17 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
     return res.status(400).json({ success: false, message: 'Name, price, and category are required' });
   }
   try {
-    const [result] = await db.query(
-      `INSERT INTO products (name, description, short_desc, price, original_price, category, stock_status, stock_quantity, images, badge, featured)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, description || '', short_desc || '', price, original_price || null, category, stock_status || 'In Stock', stock_quantity || 0, JSON.stringify(images || []), badge || null, featured ? 1 : 0]
-    );
-    const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [result.insertId]);
-    res.status(201).json({ success: true, product: withDisplayStatus(rows[0]) });
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        name, description: description || '', short_desc: short_desc || '', price,
+        original_price: original_price || null, category, stock_status: stock_status || 'In Stock',
+        stock_quantity: stock_quantity || 0, images: images || [], badge: badge || null, featured: !!featured,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json({ success: true, product: withDisplayStatus(data) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -62,14 +66,18 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
 router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const { name, description, short_desc, price, original_price, category, stock_status, stock_quantity, images, badge, featured } = req.body;
   try {
-    await db.query(
-      `UPDATE products SET name=?, description=?, short_desc=?, price=?, original_price=?, category=?, stock_status=?, stock_quantity=?, images=?, badge=?, featured=?
-       WHERE id=?`,
-      [name, description, short_desc, price, original_price || null, category, stock_status, stock_quantity || 0, JSON.stringify(images || []), badge || null, featured ? 1 : 0, req.params.id]
-    );
-    const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ success: false, message: 'Product not found' });
-    res.json({ success: true, product: withDisplayStatus(rows[0]) });
+    const { data, error } = await supabase
+      .from('products')
+      .update({
+        name, description, short_desc, price, original_price: original_price || null, category,
+        stock_status, stock_quantity: stock_quantity || 0, images: images || [], badge: badge || null, featured: !!featured,
+      })
+      .eq('id', req.params.id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, product: withDisplayStatus(data) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -82,19 +90,23 @@ router.post('/:id/restock', requireAuth, requireRole('admin', 'attendant'), asyn
     return res.status(400).json({ success: false, message: 'Quantity must be a positive number' });
   }
   try {
-    const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ success: false, message: 'Product not found' });
+    const { data: product, error: findErr } = await supabase.from('products').select('*').eq('id', req.params.id).maybeSingle();
+    if (findErr) throw findErr;
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
-    const previousQty = rows[0].stock_quantity;
+    const previousQty = product.stock_quantity;
     const newQty = previousQty + quantity;
-    await db.query('UPDATE products SET stock_quantity = ? WHERE id = ?', [newQty, req.params.id]);
-    await db.query(
-      'INSERT INTO restock_log (product_id, quantity_added, previous_qty, new_qty, restocked_by) VALUES (?, ?, ?, ?, ?)',
-      [req.params.id, quantity, previousQty, newQty, req.admin.id]
-    );
+    const { error: updateErr } = await supabase.from('products').update({ stock_quantity: newQty }).eq('id', req.params.id);
+    if (updateErr) throw updateErr;
 
-    const [updated] = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    res.json({ success: true, product: withDisplayStatus(updated[0]) });
+    const { error: logErr } = await supabase.from('restock_log').insert({
+      product_id: req.params.id, quantity_added: quantity, previous_qty: previousQty, new_qty: newQty, restocked_by: req.admin.id,
+    });
+    if (logErr) throw logErr;
+
+    const { data: updated, error: reErr } = await supabase.from('products').select('*').eq('id', req.params.id).single();
+    if (reErr) throw reErr;
+    res.json({ success: true, product: withDisplayStatus(updated) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -103,14 +115,13 @@ router.post('/:id/restock', requireAuth, requireRole('admin', 'attendant'), asyn
 // GET /api/products/restock-log — admin only, view restock history
 router.get('/restock-log/all', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT r.*, p.name AS product_name, u.email AS restocked_by_email
-       FROM restock_log r
-       JOIN products p ON p.id = r.product_id
-       LEFT JOIN admin_users u ON u.id = r.restocked_by
-       ORDER BY r.created_at DESC`
-    );
-    res.json({ success: true, log: rows });
+    const { data, error } = await supabase
+      .from('restock_log')
+      .select('*, products(name), admin_users(email)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    const log = data.map(r => ({ ...r, product_name: r.products?.name, restocked_by_email: r.admin_users?.email }));
+    res.json({ success: true, log });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -119,8 +130,9 @@ router.get('/restock-log/all', requireAuth, requireRole('admin'), async (req, re
 // DELETE /api/products/:id — admin only
 router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const [result] = await db.query('DELETE FROM products WHERE id = ?', [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Product not found' });
+    const { data, error } = await supabase.from('products').delete().eq('id', req.params.id).select();
+    if (error) throw error;
+    if (!data.length) return res.status(404).json({ success: false, message: 'Product not found' });
     res.json({ success: true, message: 'Product deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

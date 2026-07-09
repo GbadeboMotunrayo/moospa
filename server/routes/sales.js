@@ -1,5 +1,5 @@
 const express = require('express');
-const db = require('../config/db');
+const supabase = require('../config/db');
 const requireAuth = require('../middleware/auth');
 const { requireRole } = require('../middleware/auth');
 const router = express.Router();
@@ -17,10 +17,10 @@ router.post('/', requireAuth, requireRole('admin', 'attendant'), async (req, res
   }
 
   try {
-    const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [product_id]);
-    if (!rows.length) return res.status(404).json({ success: false, message: 'Product not found' });
+    const { data: product, error: findErr } = await supabase.from('products').select('*').eq('id', product_id).maybeSingle();
+    if (findErr) throw findErr;
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
-    const product = rows[0];
     if (product.stock_quantity < qty) {
       return res.status(400).json({ success: false, message: 'Not enough stock available' });
     }
@@ -29,15 +29,20 @@ router.post('/', requireAuth, requireRole('admin', 'attendant'), async (req, res
     const total = unitPrice * qty;
     const newQty = product.stock_quantity - qty;
 
-    await db.query('UPDATE products SET stock_quantity = ? WHERE id = ?', [newQty, product_id]);
-    const [result] = await db.query(
-      `INSERT INTO sales (product_id, product_name, quantity, unit_price, total, sale_type, customer_name, customer_phone, recorded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [product_id, product.name, qty, unitPrice, total, sale_type, customer_name || null, customer_phone || null, req.admin.id]
-    );
+    const { error: updateErr } = await supabase.from('products').update({ stock_quantity: newQty }).eq('id', product_id);
+    if (updateErr) throw updateErr;
 
-    const [sale] = await db.query('SELECT * FROM sales WHERE id = ?', [result.insertId]);
-    res.status(201).json({ success: true, sale: sale[0], remaining_stock: newQty });
+    const { data: sale, error: saleErr } = await supabase
+      .from('sales')
+      .insert({
+        product_id, product_name: product.name, quantity: qty, unit_price: unitPrice, total,
+        sale_type, customer_name: customer_name || null, customer_phone: customer_phone || null, recorded_by: req.admin.id,
+      })
+      .select()
+      .single();
+    if (saleErr) throw saleErr;
+
+    res.status(201).json({ success: true, sale, remaining_stock: newQty });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -46,12 +51,13 @@ router.post('/', requireAuth, requireRole('admin', 'attendant'), async (req, res
 // GET /api/sales — admin only: list sales, supports ?sale_type=walk-in|online
 router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    let sql = `SELECT s.*, u.email AS recorded_by_email FROM sales s LEFT JOIN admin_users u ON u.id = s.recorded_by WHERE 1=1`;
-    const params = [];
-    if (req.query.sale_type) { sql += ' AND s.sale_type = ?'; params.push(req.query.sale_type); }
-    sql += ' ORDER BY s.created_at DESC';
-    const [rows] = await db.query(sql, params);
-    res.json({ success: true, sales: rows });
+    let query = supabase.from('sales').select('*, admin_users(email)');
+    if (req.query.sale_type) query = query.eq('sale_type', req.query.sale_type);
+    query = query.order('created_at', { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    const sales = data.map(s => ({ ...s, recorded_by_email: s.admin_users?.email }));
+    res.json({ success: true, sales });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -60,12 +66,15 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
 // GET /api/sales/stats — admin only: summary totals
 router.get('/stats', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const [[totals]] = await db.query(
-      `SELECT COUNT(*) AS total_sales, COALESCE(SUM(total),0) AS total_revenue,
-              SUM(CASE WHEN sale_type='walk-in' THEN total ELSE 0 END) AS walk_in_revenue,
-              SUM(CASE WHEN sale_type='online' THEN total ELSE 0 END) AS online_revenue
-       FROM sales`
-    );
+    const { data, error } = await supabase.from('sales').select('total, sale_type');
+    if (error) throw error;
+    const totals = data.reduce((acc, s) => {
+      acc.total_sales += 1;
+      acc.total_revenue += Number(s.total);
+      if (s.sale_type === 'walk-in') acc.walk_in_revenue += Number(s.total);
+      if (s.sale_type === 'online') acc.online_revenue += Number(s.total);
+      return acc;
+    }, { total_sales: 0, total_revenue: 0, walk_in_revenue: 0, online_revenue: 0 });
     res.json({ success: true, stats: totals });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto  = require('crypto');
 const https   = require('https');
-const db      = require('../config/db');
+const supabase = require('../config/db');
 const router  = express.Router();
 
 // POST /api/paystack/initialize
@@ -46,7 +46,7 @@ router.post('/verify/:reference', async (req, res) => {
       try {
         const { data } = JSON.parse(body);
         if (data.status === 'success') {
-          await db.query("UPDATE orders SET status='paid', paystack_ref=? WHERE reference=?", [data.reference, data.reference]);
+          await supabase.from('orders').update({ status: 'paid', paystack_ref: data.reference }).eq('reference', data.reference);
         }
         res.json({ success: true, status: data.status, data });
       } catch { res.status(500).json({ success: false, message: 'Verification failed' }); }
@@ -63,7 +63,7 @@ router.post('/webhook', (req, res) => {
   const event = JSON.parse(req.body);
   if (event.event === 'charge.success') {
     const ref = event.data.reference;
-    db.query("UPDATE orders SET status='paid', paystack_ref=? WHERE reference=?", [ref, ref]).catch(console.error);
+    supabase.from('orders').update({ status: 'paid', paystack_ref: ref }).eq('reference', ref).then(({ error }) => { if (error) console.error(error); });
   }
   res.sendStatus(200);
 });

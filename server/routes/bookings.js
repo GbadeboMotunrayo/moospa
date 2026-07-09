@@ -1,5 +1,5 @@
 const express    = require('express');
-const db         = require('../config/db');
+const supabase   = require('../config/db');
 const requireAuth = require('../middleware/auth');
 const { sendBookingConfirmation } = require('../config/mailer');
 const router     = express.Router();
@@ -11,11 +11,16 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Name, phone, service, date, and time are required' });
   }
   try {
-    const [result] = await db.query(
-      `INSERT INTO spa_bookings (customer_name, customer_email, customer_phone, service_id, service_name, service_price, booking_date, booking_time, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [customer_name, customer_email || null, customer_phone, service_id || null, service_name, service_price || null, booking_date, booking_time, notes || null]
-    );
+    const { data, error } = await supabase
+      .from('spa_bookings')
+      .insert({
+        customer_name, customer_email: customer_email || null, customer_phone,
+        service_id: service_id || null, service_name, service_price: service_price || null,
+        booking_date, booking_time, notes: notes || null, status: 'pending',
+      })
+      .select()
+      .single();
+    if (error) throw error;
 
     // Send confirmation email if email provided
     if (customer_email) {
@@ -25,7 +30,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Booking received! We will confirm shortly.',
-      booking_id: result.insertId,
+      booking_id: data.id,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -36,13 +41,13 @@ router.post('/', async (req, res) => {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { status, date } = req.query;
-    let sql = 'SELECT * FROM spa_bookings WHERE 1=1';
-    const params = [];
-    if (status) { sql += ' AND status = ?'; params.push(status); }
-    if (date)   { sql += ' AND booking_date = ?'; params.push(date); }
-    sql += ' ORDER BY created_at DESC';
-    const [rows] = await db.query(sql, params);
-    res.json({ success: true, bookings: rows });
+    let query = supabase.from('spa_bookings').select('*');
+    if (status) query = query.eq('status', status);
+    if (date)   query = query.eq('booking_date', date);
+    query = query.order('created_at', { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, bookings: data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -51,11 +56,19 @@ router.get('/', requireAuth, async (req, res) => {
 // GET /api/bookings/stats — admin only, quick stats
 router.get('/stats', requireAuth, async (req, res) => {
   try {
-    const [[{ total }]]    = await db.query('SELECT COUNT(*) as total FROM spa_bookings');
-    const [[{ pending }]]  = await db.query("SELECT COUNT(*) as pending FROM spa_bookings WHERE status='pending'");
-    const [[{ confirmed }]] = await db.query("SELECT COUNT(*) as confirmed FROM spa_bookings WHERE status='confirmed'");
-    const [[{ today }]]    = await db.query("SELECT COUNT(*) as today FROM spa_bookings WHERE DATE(booking_date)=CURDATE()");
-    res.json({ success: true, stats: { total, pending, confirmed, today } });
+    const count = async (build) => {
+      const { count, error } = await build(supabase.from('spa_bookings').select('*', { count: 'exact', head: true }));
+      if (error) throw error;
+      return count;
+    };
+    const today = new Date().toISOString().slice(0, 10);
+    const [total, pending, confirmed, todayCount] = await Promise.all([
+      count(q => q),
+      count(q => q.eq('status', 'pending')),
+      count(q => q.eq('status', 'confirmed')),
+      count(q => q.eq('booking_date', today)),
+    ]);
+    res.json({ success: true, stats: { total, pending, confirmed, today: todayCount } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -69,7 +82,8 @@ router.put('/:id/status', requireAuth, async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid status' });
   }
   try {
-    await db.query('UPDATE spa_bookings SET status = ? WHERE id = ?', [status, req.params.id]);
+    const { error } = await supabase.from('spa_bookings').update({ status }).eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true, message: `Booking marked as ${status}` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
