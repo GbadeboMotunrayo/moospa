@@ -1,26 +1,9 @@
-const mysql = require('mysql2/promise');
+const { createClient } = require('@supabase/supabase-js');
 
-const pool = mysql.createPool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     process.env.DB_PORT     || 3306,
-  user:     process.env.DB_USER     || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME     || 'house_of_moo',
-  waitForConnections: true,
-  connectionLimit:    10,
-  queueLimit:         0,
-  timezone:           '+00:00',
-});
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_API_KEY) {
+  console.error('Supabase not configured: set SUPABASE_URL and SUPABASE_API_KEY.');
+}
 
-// Test connection on startup
-pool.getConnection()
-  .then(conn => {
-    console.log('MySQL connected successfully');
-    conn.release();
-  })
-  .catch(err => {
-    console.error('MySQL connection failed:', err.message);
-    console.error('Make sure MySQL is running and .env is configured correctly.');
-  });
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_API_KEY);
 
-module.exports = pool;
+module.exports = supabase;

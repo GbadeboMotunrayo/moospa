@@ -1,7 +1,7 @@
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
-const db       = require('../config/db');
+const supabase = require('../config/db');
 const router   = express.Router();
 
 // POST /api/auth/login
@@ -11,11 +11,15 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email and password required' });
   }
   try {
-    const [rows] = await db.query('SELECT * FROM admin_users WHERE email = ?', [email]);
-    if (!rows.length) {
+    const { data: admin, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+    if (error) throw error;
+    if (!admin) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
-    const admin = rows[0];
     const match = await bcrypt.compare(password, admin.password_hash);
     if (!match) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -46,15 +50,17 @@ router.post('/staff', require('../middleware/auth'), requireRole('admin'), async
   }
   try {
     const hash = await bcrypt.hash(password, 12);
-    await db.query(
-      'INSERT INTO admin_users (email, password_hash, name, role) VALUES (?, ?, ?, ?)',
-      [email, hash, name || 'Sales Attendant', 'attendant']
-    );
+    const { error } = await supabase
+      .from('admin_users')
+      .insert({ email, password_hash: hash, name: name || 'Sales Attendant', role: 'attendant' });
+    if (error) {
+      if (error.code === '23505') { // unique_violation
+        return res.status(409).json({ success: false, message: 'An account with this email already exists' });
+      }
+      throw error;
+    }
     res.status(201).json({ success: true, message: 'Attendant account created' });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists' });
-    }
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -62,8 +68,12 @@ router.post('/staff', require('../middleware/auth'), requireRole('admin'), async
 // GET /api/auth/staff — admin only, list staff accounts
 router.get('/staff', require('../middleware/auth'), requireRole('admin'), async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT id, email, name, role, created_at FROM admin_users ORDER BY created_at DESC');
-    res.json({ success: true, staff: rows });
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id, email, name, role, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, staff: data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -72,8 +82,14 @@ router.get('/staff', require('../middleware/auth'), requireRole('admin'), async 
 // DELETE /api/auth/staff/:id — admin only, remove an attendant account
 router.delete('/staff/:id', require('../middleware/auth'), requireRole('admin'), async (req, res) => {
   try {
-    const [result] = await db.query("DELETE FROM admin_users WHERE id = ? AND role = 'attendant'", [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Attendant not found' });
+    const { data, error } = await supabase
+      .from('admin_users')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('role', 'attendant')
+      .select();
+    if (error) throw error;
+    if (!data.length) return res.status(404).json({ success: false, message: 'Attendant not found' });
     res.json({ success: true, message: 'Attendant removed' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
