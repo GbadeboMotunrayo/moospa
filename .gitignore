@@ -1,0 +1,14 @@
+node_modules/
+build/
+.env
+_deploy_staging/.env
+*.log
+*_log.txt
+api_log.txt
+dev_log.txt
+dev_log2.txt
+devserver.log
+frontend.log
+server.log
+server_log.txt
+.claude/settings.local.json

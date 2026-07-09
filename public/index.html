@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>House of Moo - Luxury Skincare, Intimate Wellness & Spa | Nigeria</title>
+  <meta name="description" content="House of Moo offers premium whitening and glow skincare, intimate wellness products, and luxury spa treatments, delivered discreetly across Nigeria.">
+  <meta name="keywords" content="House of Moo, skincare Nigeria, whitening cream, body scrub, intimate wellness, spa, Halfcast peeling soap, body oil">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://www.houseofmoo.com/">
+
+  <!-- Premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="House of Moo">
+  <meta property="og:title" content="House of Moo - Luxury Skincare, Intimate Wellness & Spa">
+  <meta property="og:description" content="Premium whitening and glow skincare, intimate wellness products, and luxury spa treatments, delivered discreetly across Nigeria.">
+  <meta property="og:image" content="/assets/images/pages/shop/17D101FC-BB46-4FE1-B8AF-B1D26FF756B9.PNG">
+  <meta property="og:url" content="https://www.houseofmoo.com/">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="House of Moo - Luxury Skincare, Intimate Wellness & Spa">
+  <meta name="twitter:description" content="Premium whitening and glow skincare, intimate wellness products, and luxury spa treatments, delivered discreetly across Nigeria.">
+  <meta name="twitter:image" content="/assets/images/pages/shop/17D101FC-BB46-4FE1-B8AF-B1D26FF756B9.PNG">
+
+  <!-- Structured data for search engines -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": "House of Moo",
+    "description": "Luxury skincare, intimate wellness products and spa treatments, delivered across Nigeria.",
+    "url": "https://www.houseofmoo.com/",
+    "telephone": "+2349056194414",
+    "priceRange": "NGN 5,000 - NGN 50,000",
+    "areaServed": "NG"
+  }
+  </script>
+
+  <!-- Google Analytics (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --pink: #e91e8c;
+      --pink-glow: rgba(233, 30, 140, 0.35);
+      --pink-soft: rgba(233, 30, 140, 0.12);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: #0d0d0d;
+      color: #f5f1e8;
+      line-height: 1.6;
+    }
+
+    #root { width: 100%; min-height: 100vh; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0d0d0d; }
+    ::-webkit-scrollbar-thumb { background: var(--pink); border-radius: 3px; }
+
+    /* ── Typography ── */
+    h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.15; }
+
+    /* ── Gradient text ── */
+    .gradient-text {
+      background: linear-gradient(135deg, #e91e8c 0%, #ff6eb4 45%, #c2166f 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Stars ── */
+    .stars { color: #e91e8c; }
+
+    /* ── Glow card ── */
+    .glow-card {
+      background: #1a1a1a;
+      border: 1px solid rgba(233,30,140,0.12);
+      border-radius: 20px;
+      transition: transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo), border-color 0.3s;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .glow-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(233,30,140,0.18);
+      border-color: rgba(233,30,140,0.35);
+    }
+
+    /* ── Glass nav ── */
+    .glass {
+      background: rgba(13,13,13,0.82);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    .glass-light {
+      background: rgba(255,248,253,0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    /* ── Neon divider ── */
+    .neon-divider {
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, #e91e8c 30%, #ff6eb4 50%, #e91e8c 70%, transparent);
+      box-shadow: 0 0 16px rgba(233,30,140,0.6);
+      opacity: 0.7;
+    }
+
+    /* ── Announcement marquee ── */
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee 55s linear infinite;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+    @keyframes marquee {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .announcement-bar {
+      background: linear-gradient(90deg, #c2166f 0%, #e91e8c 50%, #c2166f 100%);
+      overflow: hidden;
+    }
+
+    /* ── Fade in up ── */
+    .fade-in-up {
+      animation: fadeInUp 0.9s var(--ease-out-expo) both;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(32px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Badge ── */
+    .badge {
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── Glow button ── */
+    .glow-btn {
+      font-family: var(--font-body);
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.25s var(--ease-out-expo), box-shadow 0.25s;
+    }
+    .glow-btn:hover { transform: translateY(-2px); }
+    .glow-btn:active { transform: translateY(0); }
+
+    /* ── Product grid responsive ── */
+    @media (max-width: 900px) {
+      .product-grid { grid-template-columns: repeat(2,1fr) !important; }
+    }
+    @media (max-width: 600px) {
+      .product-grid { grid-template-columns: 1fr !important; }
+    }
+
+    /* ── Pulse animation for live badges ── */
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(233,30,140,0.5); }
+      50%       { box-shadow: 0 0 0 8px rgba(233,30,140,0); }
+    }
+    .pulse { animation: pulse 2.4s ease-in-out infinite; }
+
+    /* ── Shimmer loading ── */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

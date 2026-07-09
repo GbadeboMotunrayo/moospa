@@ -1,0 +1,41 @@
+{
+  "name": "house-of-moo",
+  "version": "1.0.0",
+  "description": "House of Moo - Luxury Intimate Wellness & Spa Brand Website",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "proxy": "http://localhost:5000",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "server": "cd server && node index.js",
+    "server:dev": "cd server && npx nodemon index.js",
+    "dev": "concurrently \"npm start\" \"npm run server:dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
