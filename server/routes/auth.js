@@ -11,10 +11,12 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email and password required' });
   }
   try {
+    // ilike = case-insensitive match, so "houseofmoo..." finds "Houseofmoo..."
+    // (% and _ escaped since they're LIKE wildcards)
     const { data: admin, error } = await supabase
       .from('admin_users')
       .select('*')
-      .eq('email', email)
+      .ilike('email', email.trim().replace(/[%_]/g, '\\$&'))
       .maybeSingle();
     if (error) throw error;
     if (!admin) {

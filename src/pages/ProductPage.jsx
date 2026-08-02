@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { PRODUCTS } from '../data/products';
-import { useStock, isRestockingSoon } from '../hooks/useStock';
+import { useProducts, isRestockingSoon } from '../hooks/useProducts';
 
 function Stars({ rating, size = 16 }) {
   return <span style={{ color: '#e91e8c', fontSize: size }}>{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>;
@@ -9,7 +8,7 @@ function Stars({ rating, size = 16 }) {
 
 export default function ProductPage() {
   const { t, selectedProduct: p, navigate, addToCart, cart } = useApp();
-  const stock = useStock();
+  const { products: PRODUCTS } = useProducts();
   const [qty, setQty] = useState(1);
   const [activeImg, setActiveImg] = useState(0);
   const [added, setAdded] = useState(false);
@@ -50,7 +49,7 @@ export default function ProductPage() {
 
         {/* Details */}
         <div>
-          {isRestockingSoon(stock, p.id) ? (
+          {isRestockingSoon(p) ? (
             <div style={{ display: 'inline-block', background: '#e65100', color: 'white', fontSize: 11, fontWeight: '700', padding: '4px 12px', borderRadius: 20, marginBottom: 16, letterSpacing: 1 }}>Restocking Soon</div>
           ) : p.badge && (
             <div style={{ display: 'inline-block', background: t.accent, color: 'white', fontSize: 11, fontWeight: '700', padding: '4px 12px', borderRadius: 20, marginBottom: 16, letterSpacing: 1 }}>{p.badge}</div>

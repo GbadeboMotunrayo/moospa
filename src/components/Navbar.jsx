@@ -5,7 +5,7 @@ const ANNOUNCEMENTS = [
   '✦ Discreet Packaging Guaranteed',
   '✦ 100% Authentic Products',
   '✦ Fast Nationwide Delivery within 48hrs',
-  '✦ WhatsApp Us: +234 905 619 4414',
+  '✦ WhatsApp Us: +234 810 639 3774',
   '✦ Free Consultation with Every Order',
   '✦ Trusted by 10,000+ Women Across Nigeria',
 ];

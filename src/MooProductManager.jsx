@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authAPI, productsAPI, salesAPI, bookingsAPI, uploadAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
+import { authAPI, productsAPI, salesAPI, bookingsAPI, uploadAPI, dispatchAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
 
 const PINK = "#e91e8c";
 const LIGHT_PINK = "#fce4f3";
@@ -22,6 +22,9 @@ const ICONS = {
   ),
   plus: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+  ),
+  dispatch: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
   ),
 };
 
@@ -66,6 +69,13 @@ export default function MooProductManager() {
   const [newStaff, setNewStaff] = useState({ name: "", email: "", password: "" });
   const [loadingStaff, setLoadingStaff] = useState(false);
 
+  // Dispatch prices (admin only)
+  const [zones, setZones] = useState([]);
+  const [loadingZones, setLoadingZones] = useState(false);
+  const [zonesError, setZonesError] = useState("");
+  const [zoneEdits, setZoneEdits] = useState({});
+  const [newZone, setNewZone] = useState({ lga: "", price: "", category: "Lagos" });
+
   const isAdmin = role === "admin";
 
   function loadProducts() {
@@ -104,7 +114,56 @@ export default function MooProductManager() {
       setLoadingStaff(true);
       authAPI.getStaff().then(d => setStaff(d.staff || [])).catch(() => {}).finally(() => setLoadingStaff(false));
     }
+    if (activeTab === "dispatch" && isAdmin) loadZones();
   }, [activeTab, screen, isAdmin]);
+
+  function loadZones() {
+    setLoadingZones(true);
+    setZonesError("");
+    dispatchAPI.getAllAdmin()
+      .then(d => {
+        const sorted = (d.zones || []).sort((a, b) =>
+          (a.category || "Lagos").localeCompare(b.category || "Lagos") || a.lga.localeCompare(b.lga));
+        setZones(sorted); setZoneEdits({});
+      })
+      .catch(err => setZonesError(err.message))
+      .finally(() => setLoadingZones(false));
+  }
+
+  async function saveZone(zone) {
+    const price = zoneEdits[zone.id];
+    if (price === undefined || price === "" || isNaN(Number(price))) return showToast("Enter a valid price", "error");
+    try {
+      await dispatchAPI.update(zone.id, { price: Number(price) });
+      showToast(`${zone.lga} updated`);
+      loadZones();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function toggleZone(zone) {
+    try {
+      await dispatchAPI.update(zone.id, { active: !zone.active });
+      loadZones();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function deleteZone(zone) {
+    try {
+      await dispatchAPI.remove(zone.id);
+      showToast(`${zone.lga} removed`);
+      loadZones();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function addZone() {
+    if (!newZone.lga.trim() || newZone.price === "" || isNaN(Number(newZone.price))) return showToast("Area name and price required", "error");
+    try {
+      await dispatchAPI.create({ lga: newZone.lga.trim(), price: Number(newZone.price), category: newZone.category });
+      showToast(`${newZone.lga.trim()} added`);
+      setNewZone({ lga: "", price: "", category: "Lagos" });
+      loadZones();
+    } catch (err) { showToast(err.message, "error"); }
+  }
 
   function showToast(msg, type = "success") {
     setToast({ msg, type });
@@ -202,7 +261,10 @@ export default function MooProductManager() {
 
   async function handleRestock() {
     const qty = parseInt(restockQty, 10);
-    if (!qty || qty <= 0) return;
+    if (!qty || qty <= 0) {
+      showToast("Enter a quantity of 1 or more", "error");
+      return;
+    }
     try {
       await productsAPI.restock(restockTarget.id, qty);
       setRestockTarget(null);
@@ -313,6 +375,7 @@ export default function MooProductManager() {
     { id: "products", icon: ICONS.products, label: "Products" },
     { id: "sales", icon: ICONS.sales, label: "Record Sale" },
     ...(isAdmin ? [{ id: "spa", icon: ICONS.spa, label: "Spa Bookings" }] : []),
+    ...(isAdmin ? [{ id: "dispatch", icon: ICONS.dispatch, label: "Dispatch Prices" }] : []),
     ...(isAdmin ? [{ id: "staff", icon: ICONS.staff, label: "Staff" }] : []),
   ];
 
@@ -366,6 +429,7 @@ export default function MooProductManager() {
               {activeTab === "products" && "Products & Stock"}
               {activeTab === "sales" && "Record a Sale"}
               {activeTab === "spa" && "Spa Bookings"}
+              {activeTab === "dispatch" && "Dispatch Prices & Locations"}
               {activeTab === "staff" && "Sales Attendants"}
             </div>
             <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>House of Moo</div>
@@ -603,9 +667,14 @@ export default function MooProductManager() {
                       <select
                         value={b.status}
                         onChange={async e => {
-                          await bookingsAPI.setStatus(b.id, e.target.value).catch(() => {});
-                          setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status: e.target.value } : x));
-                          showToast("Booking status updated");
+                          const status = e.target.value;
+                          try {
+                            await bookingsAPI.setStatus(b.id, status);
+                            setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status } : x));
+                            showToast("Booking status updated");
+                          } catch (err) {
+                            showToast(err.message || "Failed to update booking", "error");
+                          }
                         }}
                         style={{ padding: "5px 10px", border: `1px solid ${PINK}44`, borderRadius: 6, fontSize: 12, color: PINK, background: LIGHT_PINK, cursor: "pointer", outline: "none" }}
                       >
@@ -618,6 +687,98 @@ export default function MooProductManager() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {activeTab === "dispatch" && isAdmin && (
+            <div>
+              <div style={{ background: "white", borderRadius: 12, padding: "16px 20px", border: "1px solid #eee", marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ flex: 2, minWidth: 180 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>AREA / LGA</div>
+                  <input value={newZone.lga} onChange={e => setNewZone(z => ({ ...z, lga: e.target.value }))} placeholder="e.g. Yaba"
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 120 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>DELIVERY PRICE (N)</div>
+                  <input type="number" value={newZone.price} onChange={e => setNewZone(z => ({ ...z, price: e.target.value }))} placeholder="3000"
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>TYPE</div>
+                  <select value={newZone.category} onChange={e => setNewZone(z => ({ ...z, category: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box", background: "white" }}>
+                    <option value="Lagos">Lagos (LGA)</option>
+                    <option value="Outside Lagos">Outside Lagos (State)</option>
+                  </select>
+                </div>
+                <button onClick={addZone}
+                  style={{ padding: "10px 20px", background: PINK, border: "none", borderRadius: 8, color: "white", fontWeight: "bold", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  {ICONS.plus} Add Area
+                </button>
+              </div>
+
+              {loadingZones && <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading dispatch prices...</div>}
+              {zonesError && (
+                <div style={{ background: "#fff3e0", border: "1px solid #ffcc80", borderRadius: 8, padding: "14px 18px", color: "#e65100", fontSize: 13, marginBottom: 16 }}>
+                  {zonesError}
+                </div>
+              )}
+
+              <div style={{ background: "white", borderRadius: 12, border: "1px solid #eee", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#f9f9f9" }}>
+                      {["Area / LGA", "Type", "Delivery Price", "Status", "Actions"].map(h => (
+                        <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontSize: 12, color: "#888", fontWeight: "bold", letterSpacing: 1, borderBottom: "1px solid #eee" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {zones.map(z => (
+                      <tr key={z.id} style={{ borderBottom: "1px solid #f5f5f5", opacity: z.active ? 1 : 0.5 }}>
+                        <td style={{ padding: "14px 20px", fontWeight: "600", fontSize: 14, color: "#1a1a1a" }}>{z.lga}</td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: (z.category || "Lagos") === "Lagos" ? LIGHT_PINK : "#e3f2fd", color: (z.category || "Lagos") === "Lagos" ? PINK : "#1565c0" }}>
+                            {z.category || "Lagos"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <input type="number" value={zoneEdits[z.id] ?? Number(z.price)}
+                            onChange={e => setZoneEdits(ed => ({ ...ed, [z.id]: e.target.value }))}
+                            style={{ width: 110, padding: "8px 12px", border: `1px solid ${zoneEdits[z.id] !== undefined ? PINK : "#e0e0e0"}`, borderRadius: 6, fontSize: 14, fontWeight: "bold", color: PINK, outline: "none" }} />
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: z.active ? "#e8f5e9" : "#f5f5f5", color: z.active ? "#2e7d32" : "#888" }}>
+                            {z.active ? "Active" : "Hidden"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button onClick={() => saveZone(z)} disabled={zoneEdits[z.id] === undefined}
+                              style={{ padding: "6px 14px", background: zoneEdits[z.id] !== undefined ? LIGHT_PINK : "#f5f5f5", border: `1px solid ${zoneEdits[z.id] !== undefined ? PINK + "44" : "#eee"}`, borderRadius: 6, color: zoneEdits[z.id] !== undefined ? PINK : "#bbb", fontSize: 12, fontWeight: "bold", cursor: zoneEdits[z.id] !== undefined ? "pointer" : "default" }}>
+                              Save
+                            </button>
+                            <button onClick={() => toggleZone(z)}
+                              style={{ padding: "6px 14px", background: "#e3f2fd", border: "1px solid #2196F344", borderRadius: 6, color: "#1565c0", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>
+                              {z.active ? "Hide" : "Show"}
+                            </button>
+                            <button onClick={() => deleteZone(z)}
+                              style={{ padding: "6px 14px", background: "#fce4ec", border: "1px solid #f4849044", borderRadius: 6, color: "#c62828", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!loadingZones && !zonesError && zones.length === 0 && (
+                  <div style={{ padding: 40, textAlign: "center", color: "#aaa" }}>No dispatch areas yet. Add one above.</div>
+                )}
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#aaa" }}>
+                Customers see active areas with their prices at checkout. "Hide" removes an area from checkout without deleting it.
+              </div>
             </div>
           )}
 

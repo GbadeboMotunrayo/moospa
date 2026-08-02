@@ -46,9 +46,9 @@ export default function SpaPage() {
       {/* Hero Section */}
       <div style={{ position: 'relative', minHeight: 640, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
         <img
-          src="/assets/images/pages/spa/katherine-hanlon-WAm_HaI4W2E-unsplash.jpg"
+          src="/assets/images/models/e7c8e6c5-4135-4d38-9c52-fa1575786041.JPG"
           alt="House of Moo Spa & Wellness"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%' }}
         />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(8,2,6,0.92) 0%, rgba(8,2,6,0.65) 50%, rgba(8,2,6,0.2) 100%)' }} />
         <div style={{ position: 'absolute', bottom: -100, left: -100, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(233,30,140,0.16) 0%, transparent 70%)', pointerEvents: 'none' }} />

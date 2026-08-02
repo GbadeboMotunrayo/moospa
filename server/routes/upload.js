@@ -1,14 +1,10 @@
 const express     = require('express');
-const cloudinary  = require('cloudinary').v2;
 const multer      = require('multer');
+const supabase    = require('../config/db');
 const requireAuth = require('../middleware/auth');
 const router      = express.Router();
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const BUCKET = 'product-images';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -16,17 +12,20 @@ const upload = multer({
   fileFilter: (req, file, cb) => file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Images only')),
 });
 
-// POST /api/upload
+// POST /api/upload — stores product photos in Supabase Storage
 router.post('/', requireAuth, upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No image provided' });
   try {
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: 'house-of-moo/products', transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }] },
-        (err, r) => err ? reject(err) : resolve(r)
-      ).end(req.file.buffer);
-    });
-    res.json({ success: true, url: result.secure_url, public_id: result.public_id });
+    const ext = (req.file.originalname.match(/\.[^.]+$/) || [''])[0];
+    const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+    if (uploadErr) throw uploadErr;
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    res.json({ success: true, url: data.publicUrl, path });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

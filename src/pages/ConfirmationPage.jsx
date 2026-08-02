@@ -47,7 +47,7 @@ export default function ConfirmationPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <a href={`https://wa.me/2349056194414?text=Hi, I placed order ${order.ref}`} target="_blank" rel="noreferrer"
+        <a href={`https://wa.me/2348106393774?text=Hi, I placed order ${order.ref}`} target="_blank" rel="noreferrer"
           style={{ background: '#25d366', color: 'white', padding: '12px 28px', borderRadius: 6, fontWeight: '700', fontSize: 14, textDecoration: 'none' }}>
           Track via WhatsApp
         </a>

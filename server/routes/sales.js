@@ -6,8 +6,8 @@ const router = express.Router();
 
 // POST /api/sales — admin or attendant: record a sale (walk-in or online) and reduce stock
 router.post('/', requireAuth, requireRole('admin', 'attendant'), async (req, res) => {
-  const { product_id, quantity, sale_type, customer_name, customer_phone } = req.body;
-  const qty = parseInt(quantity, 10);
+  const { product_id, sale_type, customer_name, customer_phone } = req.body;
+  const qty = parseInt(req.body.quantity ?? req.query.quantity, 10);
 
   if (!product_id || !qty || qty <= 0) {
     return res.status(400).json({ success: false, message: 'product_id and a positive quantity are required' });

@@ -1,7 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ordersAPI } from '../services/api';
+import { ordersAPI, dispatchAPI } from '../services/api';
 import { trackPurchase } from '../utils/analytics';
+
+// Local fallback if the API can't be reached — mirrors server/routes/dispatch.js defaults
+const FALLBACK_ZONES = [
+  ['Agege', 2000], ['Ajeromi-Ifelodun', 4500], ['Alimosho', 2500], ['Amuwo-Odofin', 5000],
+  ['Apapa', 5000], ['Badagry', 7000], ['Epe', 8000], ['Eti-Osa', 6000],
+  ['Ibeju-Lekki', 8000], ['Ifako-Ijaiye', 2000], ['Ikeja', 3000], ['Ikorodu', 5500],
+  ['Kosofe', 4000], ['Lagos Island', 5000], ['Lagos Mainland', 4500], ['Mushin', 3500],
+  ['Ojo', 4500], ['Oshodi-Isolo', 3500], ['Shomolu', 4000], ['Surulere', 4000],
+].map(([lga, price], i) => ({ id: -(i + 1), lga, price, category: 'Lagos' }));
 
 function Field({ label, name, type = 'text', half, form, errors, setForm, t }) {
   return (
@@ -16,11 +25,52 @@ function Field({ label, name, type = 'text', half, form, errors, setForm, t }) {
 
 export default function CheckoutPage() {
   const { t, cart, cartSubtotal, clearCart, navigate, setOrder } = useApp();
-  const SHIPPING = 2000;
-  const total = cartSubtotal + SHIPPING;
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', city: '', state: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', city: '', state: 'Lagos' });
   const [errors, setErrors] = useState({});
   const [paying, setPaying] = useState(false);
+
+  // Delivery zones (Lagos LGAs with dispatch prices)
+  const [zones, setZones] = useState([]);
+  const [locating, setLocating] = useState(false);
+  const [detectedLga, setDetectedLga] = useState('');
+
+  const selectedZone = zones.find(z => z.lga === form.city);
+  const SHIPPING = selectedZone ? Number(selectedZone.price) : 0;
+  const total = cartSubtotal + SHIPPING;
+
+  useEffect(() => {
+    dispatchAPI.getZones()
+      .then(d => { const list = d.zones || FALLBACK_ZONES; setZones(list); detectLocation(list); })
+      .catch(() => { setZones(FALLBACK_ZONES); detectLocation(FALLBACK_ZONES); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ask for the user's location, reverse-geocode it, and pre-select their LGA for confirmation
+  const detectLocation = (zoneList) => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(async pos => {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+        const d = await r.json();
+        const a = d.address || {};
+        const norm = s => String(s).toLowerCase().replace(/[^a-z]/g, '');
+        // state last: LGA-level fields should win before falling back to the state name
+        const candidates = [a.county, a.city_district, a.suburb, a.borough, a.town, a.city, a.state].filter(Boolean);
+        let match = null;
+        for (const c of candidates) {
+          match = zoneList.find(z => norm(z.lga).includes(norm(c)) || norm(c).includes(norm(z.lga)));
+          if (match) break;
+        }
+        if (match) {
+          const isOutside = (match.category || 'Lagos') !== 'Lagos';
+          setForm(f => f.city ? f : { ...f, city: match.lga, state: isOutside ? match.lga : 'Lagos' });
+          setDetectedLga(match.lga);
+        }
+      } catch (err) { /* detection is best-effort; user picks manually */ }
+      setLocating(false);
+    }, () => setLocating(false), { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
+  };
 
   const validate = () => {
     const e = {};
@@ -28,7 +78,7 @@ export default function CheckoutPage() {
     if (!form.email.includes('@')) e.email = 'Valid email required';
     if (form.phone.length < 10) e.phone = 'Valid phone required';
     if (!form.address.trim()) e.address = 'Required';
-    if (!form.city.trim()) e.city = 'Required';
+    if (!form.city.trim()) e.city = 'Select your delivery area';
     if (!form.state.trim()) e.state = 'Required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -36,7 +86,7 @@ export default function CheckoutPage() {
 
   const [payError, setPayError] = useState('');
 
-  const WHATSAPP_NUMBER = '2349056194414';
+  const WHATSAPP_NUMBER = '2348106393774';
 
   const handleWhatsAppCheckout = async () => {
     if (!validate()) return;
@@ -63,7 +113,7 @@ export default function CheckoutPage() {
     }
 
     const itemLines = cart.map((i, idx) => `${idx + 1}. ${i.name}${i.qty > 1 ? ` x${i.qty}` : ''} @ N${i.price.toLocaleString()}`).join('\n');
-    const message = `Hi, my name is ${form.name}, and I want to purchase the following products:\n${itemLines}\n\nDelivery fee: N${SHIPPING.toLocaleString()}\nTotal: N${total.toLocaleString()}\nOrder Ref: ${reference}\nDelivery to: ${form.address}, ${form.city}, ${form.state}\n\nHow do I make payment?`;
+    const message = `Hi, my name is ${form.name}, and I want to purchase the following products:\n${itemLines}\n\nSubtotal: N${cartSubtotal.toLocaleString()}\nDelivery (${form.city}): N${SHIPPING.toLocaleString()}\nTotal: N${total.toLocaleString()}\nOrder Ref: ${reference}\nDelivery to: ${form.address}, ${form.city}, ${form.state}\n\nHow do I make payment?`;
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
 
     const completedOrder = { ref: reference, form, cart: [...cart], total, date: new Date().toLocaleDateString() };
@@ -86,7 +136,38 @@ export default function CheckoutPage() {
               <Field label="Email Address" name="email" type="email" half form={form} errors={errors} setForm={setForm} t={t} />
               <Field label="Phone Number" name="phone" type="tel" half form={form} errors={errors} setForm={setForm} t={t} />
               <Field label="Delivery Address" name="address" form={form} errors={errors} setForm={setForm} t={t} />
-              <Field label="City" name="city" half form={form} errors={errors} setForm={setForm} t={t} />
+              <div style={{ marginBottom: 16, gridColumn: 'span 1' }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: '700', color: t.muted, marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase' }}>Delivery Area</label>
+                <select value={form.city}
+                  onChange={e => {
+                    const z = zones.find(x => x.lga === e.target.value);
+                    const isOutside = z && (z.category || 'Lagos') !== 'Lagos';
+                    setForm(f => ({ ...f, city: e.target.value, state: z ? (isOutside ? z.lga : 'Lagos') : f.state }));
+                  }}
+                  style={{ width: '100%', padding: '12px 14px', background: t.input, border: `1px solid ${errors.city ? '#ef5350' : t.border}`, borderRadius: 6, color: t.text, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}>
+                  <option value="">{locating ? 'Detecting your area...' : 'Select your area'}</option>
+                  <optgroup label="Lagos — select your LGA">
+                    {zones.filter(z => (z.category || 'Lagos') === 'Lagos').map(z => (
+                      <option key={z.id} value={z.lga}>{z.lga} — N{Number(z.price).toLocaleString()}</option>
+                    ))}
+                  </optgroup>
+                  {zones.some(z => (z.category || 'Lagos') !== 'Lagos') && (
+                    <optgroup label="Outside Lagos — select your state (courier delivery)">
+                      {zones.filter(z => (z.category || 'Lagos') !== 'Lagos').map(z => (
+                        <option key={z.id} value={z.lga}>{z.lga} — N{Number(z.price).toLocaleString()}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+                {errors.city && <div style={{ color: '#ef5350', fontSize: 11, marginTop: 4 }}>{errors.city}</div>}
+                {detectedLga && <div style={{ color: '#25d366', fontSize: 11, marginTop: 4 }}>📍 We detected your area as {detectedLga} — please confirm it's correct.</div>}
+                {!detectedLga && !locating && (
+                  <button type="button" onClick={() => detectLocation(zones)}
+                    style={{ marginTop: 6, padding: 0, background: 'none', border: 'none', color: t.accent, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
+                    Use my location
+                  </button>
+                )}
+              </div>
               <Field label="State" name="state" half form={form} errors={errors} setForm={setForm} t={t} />
             </div>
           </div>
@@ -134,12 +215,16 @@ export default function CheckoutPage() {
               ))}
             </div>
             <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 16 }}>
-              {[['Subtotal', cartSubtotal], ['Delivery', SHIPPING]].map(([l, v]) => (
-                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{ color: t.muted, fontSize: 14 }}>{l}</span>
-                  <span style={{ color: t.text, fontWeight: '600', fontSize: 14 }}>N{v.toLocaleString()}</span>
-                </div>
-              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ color: t.muted, fontSize: 14 }}>Subtotal</span>
+                <span style={{ color: t.text, fontWeight: '600', fontSize: 14 }}>N{cartSubtotal.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ color: t.muted, fontSize: 14 }}>Delivery{selectedZone ? ` (${selectedZone.lga})` : ''}</span>
+                <span style={{ color: t.text, fontWeight: '600', fontSize: 14 }}>
+                  {selectedZone ? `N${SHIPPING.toLocaleString()}` : 'Select area'}
+                </span>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.border}` }}>
                 <span style={{ fontWeight: '700', color: t.text, fontSize: 16 }}>Total</span>
                 <span style={{ fontWeight: '700', color: t.accent, fontSize: 22 }}>N{total.toLocaleString()}</span>

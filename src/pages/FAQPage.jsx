@@ -69,7 +69,7 @@ export default function FAQPage() {
           <h3 style={{ fontSize: 20, fontWeight: '700', color: t.text, marginBottom: 8 }}>Still have questions?</h3>
           <p style={{ color: t.muted, fontSize: 14, marginBottom: 20 }}>Our team is available 24/7 on WhatsApp to help you.</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <a href="https://wa.me/2349056194414" target="_blank" rel="noreferrer" style={{ background: '#25d366', color: 'white', padding: '11px 28px', borderRadius: 6, fontWeight: '700', fontSize: 14, textDecoration: 'none' }}>Chat on WhatsApp</a>
+            <a href="https://wa.me/2348106393774" target="_blank" rel="noreferrer" style={{ background: '#25d366', color: 'white', padding: '11px 28px', borderRadius: 6, fontWeight: '700', fontSize: 14, textDecoration: 'none' }}>Chat on WhatsApp</a>
             <button onClick={() => navigate('contact')} style={{ background: 'transparent', color: t.accent, padding: '11px 28px', border: `2px solid ${t.accent}`, borderRadius: 6, fontWeight: '700', fontSize: 14, cursor: 'pointer' }}>Contact Us</button>
           </div>
         </div>

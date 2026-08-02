@@ -1,5 +1,5 @@
 import { useApp } from '../context/AppContext';
-import { PRODUCTS } from '../data/products';
+import { useProducts } from '../hooks/useProducts';
 
 function Stars({ rating }) {
   return <span style={{ color: '#e91e8c', fontSize: 13 }}>{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>;
@@ -7,6 +7,7 @@ function Stars({ rating }) {
 
 export default function SexToysPage() {
   const { t, navigate, addToCart, ageVerified, setAgeVerified } = useApp();
+  const { products: PRODUCTS } = useProducts();
   const products = PRODUCTS.filter(p => p.category === 'sextoys');
 
   if (!ageVerified) {

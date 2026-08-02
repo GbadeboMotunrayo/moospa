@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { PRODUCTS } from '../data/products';
-import { useStock, isRestockingSoon } from '../hooks/useStock';
+import { useProducts, isRestockingSoon } from '../hooks/useProducts';
 
 function Stars({ rating }) {
   return <span style={{ color: '#e91e8c', fontSize: 13 }}>{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>;
@@ -9,7 +8,7 @@ function Stars({ rating }) {
 
 export default function SkincarePage() {
   const { t, navigate, addToCart } = useApp();
-  const stock = useStock();
+  const { products: PRODUCTS } = useProducts();
   const [sort, setSort] = useState('default');
   const products = PRODUCTS.filter(p => p.category === 'skincare');
   let sorted = [...products];
@@ -72,7 +71,7 @@ export default function SkincarePage() {
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
               <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('product', p)}>
                 <img src={p.mainImage} alt={p.name} style={{ width: '100%', height: 260, objectFit: 'cover' }} />
-                {isRestockingSoon(stock, p.id) ? (
+                {isRestockingSoon(p) ? (
                   <div style={{ position: 'absolute', top: 12, left: 12, background: '#e65100', color: 'white', fontSize: 10, fontWeight: '700', padding: '4px 10px', borderRadius: 20 }}>Restocking Soon</div>
                 ) : p.badge && (
                   <div style={{ position: 'absolute', top: 12, left: 12, background: t.accent, color: 'white', fontSize: 10, fontWeight: '700', padding: '4px 10px', borderRadius: 20 }}>{p.badge}</div>

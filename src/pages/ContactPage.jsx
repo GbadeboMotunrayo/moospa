@@ -15,16 +15,18 @@ export default function ContactPage() {
     }
   };
 
+  // background-attachment: fixed janks on iOS Safari, so phones get a normal scroll
+  const fixedBg = typeof window !== 'undefined' && window.innerWidth > 768;
+
   return (
     <div>
-      {/* Hero Section */}
-      <div style={{ position: 'relative', minHeight: 520, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-        <img
-          src="/assets/images/pages/contact/banner.PNG"
-          alt="Contact House of Moo"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'right center' }}
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(10,2,8,0.93) 0%, rgba(10,2,8,0.74) 45%, rgba(10,2,8,0.22) 75%, rgba(10,2,8,0.05) 100%)' }} />
+      {/* Hero Section — full viewport; the photo stays pinned while content scrolls over it */}
+      <div style={{
+        position: 'relative', minHeight: 'calc(100vh - 72px)', overflow: 'hidden', display: 'flex', alignItems: 'center',
+        backgroundImage: 'linear-gradient(90deg, rgba(10,2,8,0.9) 0%, rgba(10,2,8,0.68) 45%, rgba(10,2,8,0.28) 75%, rgba(10,2,8,0.15) 100%), url(/assets/images/models/07df43b9-7482-46e9-ac4e-97c7c45df6dd.JPG)',
+        backgroundSize: 'cover', backgroundPosition: 'center 18%', backgroundRepeat: 'no-repeat',
+        backgroundAttachment: fixedBg ? 'fixed' : 'scroll',
+      }}>
         <div style={{ position: 'absolute', top: -60, left: -60, width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(233,30,140,0.14) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         <div className="fade-in-up" style={{ position: 'relative', zIndex: 1, padding: '80px 80px', maxWidth: 600 }}>
@@ -44,6 +46,11 @@ export default function ContactPage() {
             We typically respond within 2 hours during business hours. WhatsApp is fastest.
           </p>
         </div>
+
+        <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'rgba(245,241,232,0.6)', pointerEvents: 'none' }}>
+          <span style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase' }}>Scroll</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6,9 12,15 18,9" /></svg>
+        </div>
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 40px' }}>
@@ -53,8 +60,8 @@ export default function ContactPage() {
             <div style={{ marginBottom: 40 }}>
               <h2 style={{ fontSize: 24, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 24 }}>Contact Information</h2>
               {[
-                { label: 'WhatsApp', value: '09056........', note: 'Fastest response', link: 'https://wa.me/2349056194414' },
-                { label: 'Phone', value: '09056........ / 08106........', note: 'Call or WhatsApp us', link: 'https://wa.me/2349056194414' },
+                { label: 'WhatsApp', value: '08106........', note: 'Fastest response', link: 'https://wa.me/2348106393774' },
+                { label: 'Phone', value: '08106........ / 07070........', note: 'Call or WhatsApp us', link: 'https://wa.me/2348106393774' },
                 { label: 'Spa Location', value: '1 Olaniyi Street, New Okooba, Abulegba, Lagos', note: 'Mon–Sat 9am–7pm' },
               ].map(c => (
                 <div key={c.label} style={{ display: 'flex', gap: 16, marginBottom: 24, padding: '18px 20px', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8 }}>
@@ -105,7 +112,7 @@ export default function ContactPage() {
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button type="submit" style={{ flex: 1, padding: '14px', background: t.accent, color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer' }}>Send Message</button>
-                <a href="https://wa.me/2349056194414" target="_blank" rel="noreferrer" style={{ flex: 1, padding: '14px', background: '#25d366', color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>WhatsApp</a>
+                <a href="https://wa.me/2348106393774" target="_blank" rel="noreferrer" style={{ flex: 1, padding: '14px', background: '#25d366', color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>WhatsApp</a>
               </div>
             </form>
           </div>

@@ -38,22 +38,21 @@ export default function AboutPage() {
           <div>
             <div style={{ color: t.accent, fontSize: 12, letterSpacing: 4, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16 }}>Our Story</div>
             <h2 style={{ fontSize: 36, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 20, lineHeight: 1.3 }}>Glow. Relax. Be You.</h2>
-            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9, marginBottom: 16 }}>We're more than just a spa — we're your home for glowing skin, relaxation, and body wellness. At houseofmoo, we believe everyone deserves to feel beautiful, pampered, and comfortable in their own skin.</p>
-            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9 }}>Whether you're coming in for a quick glow-up or a full day of pampering, our team is here to give you expert care in a clean, private, and welcoming space.</p>
+            <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9 }}>We're more than just a spa — we're your home for glowing skin, relaxation, and body wellness. At houseofmoo, we believe everyone deserves to feel beautiful, pampered, and comfortable in their own skin.</p>
           </div>
-          <img src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=600&h=500&fit=crop" alt="About" style={{ width: '100%', height: 420, objectFit: 'cover', borderRadius: 10, border: `1px solid ${t.border}` }} />
+          <img src="/assets/images/models/340a62cb-3915-4ed2-837c-cd8c5f17eb11.JPG" alt="House of Moo model with our whitening collection" style={{ width: '100%', height: 420, objectFit: 'cover', objectPosition: 'center 22%', borderRadius: 10, border: `1px solid ${t.border}` }} />
         </div>
 
         <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: '48px', marginBottom: 80, textAlign: 'center' }}>
           <div style={{ color: t.accent, fontSize: 12, letterSpacing: 4, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16 }}>Our Services</div>
-          <h2 style={{ fontSize: 32, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 40 }}>Designed to Help You Look Good and Feel Even Better</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32 }}>
+          <h2 style={{ fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 40 }}>Our services are designed to help you look good and feel even better:</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32, marginBottom: 48 }}>
             {[
-              { title: 'Skin & Face', desc: 'Professional facials, body scrub, skin tag removal, bumps removal, and body screen treatments.' },
-              { title: 'Hands & Feet', desc: 'Luxury manicure and pedicure services.' },
-              { title: 'Body Wellness', desc: 'Relaxing massage and body therapy.' },
-              { title: 'Skincare Store', desc: 'Curated skincare products for all skin types to maintain your glow at home.' },
-              { title: 'Intimacy & Wellness', desc: 'Discreet selection of adult wellness products.' },
+              { title: 'Skin & Face', desc: 'Professional facials, body scrub, skin tag removal, bumps removal, and body screen treatments' },
+              { title: 'Hands & Feet', desc: 'Luxury manicure and pedicure services' },
+              { title: 'Body Wellness', desc: 'Relaxing massage and body therapy' },
+              { title: 'Skincare Store', desc: 'Curated skincare products for all skin types to maintain your glow at home' },
+              { title: 'Intimacy & Wellness', desc: 'Discreet selection of adult wellness products' },
             ].map(v => (
               <div key={v.title}>
                 <div style={{ width: 48, height: 48, background: `${t.accent}18`, borderRadius: '50%', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -61,6 +60,31 @@ export default function AboutPage() {
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: '700', color: t.text, marginBottom: 10 }}>{v.title}</h3>
                 <p style={{ color: t.muted, fontSize: 14, lineHeight: 1.8 }}>{v.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{ color: t.muted, fontSize: 15, lineHeight: 1.9, maxWidth: 640, margin: '0 auto 24px' }}>Whether you're coming in for a quick glow-up or a full day of pampering, our team is here to give you expert care in a clean, private, and welcoming space.</p>
+          <p style={{ color: t.text, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 17 }}>Houseofmooskincareandspa — Glow. Relax. Be you.</p>
+        </div>
+
+        <div style={{ marginBottom: 80 }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <div style={{ color: t.accent, fontSize: 12, letterSpacing: 4, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16 }}>The House of Moo Glow</div>
+            <h2 style={{ fontSize: 32, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 10 }}>Our Products, Worn With Confidence</h2>
+            <p style={{ color: t.muted, fontSize: 15 }}>Real House of Moo products, photographed in our Lagos spa</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            {[
+              { src: '/assets/images/models/9c59efe0-cf84-4d72-ad4a-692c3580766a.JPG', alt: 'Model with the MINA Whitening collection' },
+              { src: '/assets/images/models/341c4825-58e3-4ae0-a61a-38532ff27d72.JPG', alt: 'Model holding MINA Whitening body wash and lotion' },
+              { src: '/assets/images/models/50bc5370-06b6-4a2a-8e14-bd31a82a8c7e.JPG', alt: 'Model presenting Magic White body wash' },
+              { src: '/assets/images/models/03f69cce-2030-425c-8fa5-446cbb0639b6.JPG', alt: 'Model with the Extreme Whitening range' },
+            ].map((img, i) => (
+              <div key={i} style={{ borderRadius: 12, overflow: 'hidden', aspectRatio: '3/4', border: `1px solid ${t.border}` }}>
+                <img src={img.src} alt={img.alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', transition: 'transform 0.5s ease' }}
+                  onMouseEnter={e => e.target.style.transform = 'scale(1.06)'}
+                  onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                />
               </div>
             ))}
           </div>

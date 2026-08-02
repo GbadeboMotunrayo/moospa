@@ -4,6 +4,19 @@ const requireAuth = require('../middleware/auth');
 const { requireRole } = require('../middleware/auth');
 const router     = express.Router();
 
+// Pull a quantity out of a request no matter how the client shaped it:
+// { quantity: 10 }, { quantity: "10" }, a bare number/string body, or ?quantity=10.
+// Keeps restock working even if a browser, proxy, or cached bundle sends the
+// value in an unexpected form.
+function readQuantity(req) {
+  const b = req.body;
+  let raw;
+  if (b && typeof b === 'object' && !Array.isArray(b)) raw = b.quantity;
+  else raw = b; // body came through as a bare number or string
+  if (raw === undefined || raw === null || raw === '') raw = req.query.quantity;
+  return parseInt(raw, 10);
+}
+
 // Derive the display stock status from stock_quantity — out-of-stock items
 // show as "Restocking Soon" on the storefront instead of "Out of Stock".
 function withDisplayStatus(p) {
@@ -46,10 +59,17 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
     return res.status(400).json({ success: false, message: 'Name, price, and category are required' });
   }
   try {
+    // products.id has no identity/sequence default in this Postgres instance
+    // (lost during the MySQL -> Supabase port), so the next id is assigned here.
+    const { data: maxRow, error: maxErr } = await supabase
+      .from('products').select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+    if (maxErr) throw maxErr;
+    const nextId = (maxRow?.id || 0) + 1;
+
     const { data, error } = await supabase
       .from('products')
       .insert({
-        name, description: description || '', short_desc: short_desc || '', price,
+        id: nextId, name, description: description || '', short_desc: short_desc || '', price,
         original_price: original_price || null, category, stock_status: stock_status || 'In Stock',
         stock_quantity: stock_quantity || 0, images: images || [], badge: badge || null, featured: !!featured,
       })
@@ -85,7 +105,7 @@ router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
 
 // POST /api/products/:id/restock — admin or attendant: add to stock (cannot set/edit stock directly)
 router.post('/:id/restock', requireAuth, requireRole('admin', 'attendant'), async (req, res) => {
-  const quantity = parseInt(req.body.quantity, 10);
+  const quantity = readQuantity(req);
   if (!quantity || quantity <= 0) {
     return res.status(400).json({ success: false, message: 'Quantity must be a positive number' });
   }

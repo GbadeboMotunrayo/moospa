@@ -5,12 +5,15 @@
 const BASE = process.env.REACT_APP_API_URL || '/api';
 
 async function request(path, options = {}) {
+  // headers must be merged last — spreading `...rest` after a headers key would
+  // replace Content-Type entirely and the server would ignore the JSON body
+  const { headers, ...rest } = options;
   const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
+    ...rest,
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
   return data;
 }
 
@@ -60,6 +63,14 @@ export const ordersAPI = {
   getStats:  ()           => request('/orders/stats',         { headers: authHeader() }),
   getOne:    (ref)        => request(`/orders/${ref}`,        { headers: authHeader() }),
   setStatus: (ref, status)=> request(`/orders/${ref}/status`, { method: 'PUT', headers: authHeader(), body: JSON.stringify({ status }) }),
+};
+
+export const dispatchAPI = {
+  getZones:    ()         => request('/dispatch'),
+  getAllAdmin: ()         => request('/dispatch/all',   { headers: authHeader() }),
+  create:      (data)     => request('/dispatch',       { method: 'POST',   headers: authHeader(), body: JSON.stringify(data) }),
+  update:      (id, data) => request(`/dispatch/${id}`, { method: 'PUT',    headers: authHeader(), body: JSON.stringify(data) }),
+  remove:      (id)       => request(`/dispatch/${id}`, { method: 'DELETE', headers: authHeader() }),
 };
 
 export const paystackAPI = {
