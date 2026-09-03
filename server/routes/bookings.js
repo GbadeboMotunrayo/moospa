@@ -2,6 +2,7 @@ const express    = require('express');
 const supabase   = require('../config/db');
 const requireAuth = require('../middleware/auth');
 const { sendBookingConfirmation } = require('../config/mailer');
+const { notifyNewBooking } = require('../telegram/notify');
 const router     = express.Router();
 
 // POST /api/bookings — public (customer books a spa session)
@@ -25,6 +26,14 @@ router.post('/', async (req, res) => {
     // Send confirmation email if email provided
     if (customer_email) {
       sendBookingConfirmation({ customer_name, customer_email, service_name, booking_date, booking_time }).catch(console.error);
+    }
+
+    // Alert the owner/staff on Telegram so a booking never sits unseen.
+    // Never let a notification hiccup affect the customer's booking response.
+    try {
+      notifyNewBooking({ customer_name, customer_phone, customer_email, service_name, service_price, booking_date, booking_time, notes });
+    } catch (err) {
+      console.error('[bookings] notifyNewBooking failed:', err.message);
     }
 
     res.status(201).json({

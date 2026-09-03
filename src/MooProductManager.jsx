@@ -434,7 +434,7 @@ export default function MooProductManager() {
     { id: "dashboard", icon: ICONS.dashboard, label: "Dashboard" },
     { id: "products", icon: ICONS.products, label: "Products" },
     { id: "sales", icon: ICONS.sales, label: "Record Sale" },
-    ...(isAdmin ? [{ id: "spa", icon: ICONS.spa, label: "Spa Bookings" }] : []),
+    { id: "spa", icon: ICONS.spa, label: "Spa Bookings" },
     ...(isAdmin ? [{ id: "spaPrices", icon: ICONS.spaPrices, label: "Spa Prices" }] : []),
     ...(isAdmin ? [{ id: "dispatch", icon: ICONS.dispatch, label: "Dispatch Prices" }] : []),
     ...(isAdmin ? [{ id: "staff", icon: ICONS.staff, label: "Staff" }] : []),
@@ -705,7 +705,7 @@ export default function MooProductManager() {
             </div>
           )}
 
-          {activeTab === "spa" && isAdmin && (
+          {activeTab === "spa" && (
             <div style={{ background: "white", borderRadius: 12, padding: 24, border: "1px solid #eee" }}>
               <div style={{ fontSize: 16, fontWeight: "bold", marginBottom: 4, color: "#1a1a1a" }}>Spa Bookings</div>
               <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>Live bookings from customers</div>
