@@ -55,6 +55,7 @@ export const bookingsAPI = {
   getAll:    (params = {}) => request('/bookings?' + new URLSearchParams(params).toString(), { headers: authHeader() }),
   getStats:  ()           => request('/bookings/stats',       { headers: authHeader() }),
   setStatus: (id, status) => request(`/bookings/${id}/status`, { method: 'PUT', headers: authHeader(), body: JSON.stringify({ status }) }),
+  reschedule: (id, booking_date, booking_time) => request(`/bookings/${id}/reschedule`, { method: 'PUT', headers: authHeader(), body: JSON.stringify({ booking_date, booking_time }) }),
 };
 
 export const ordersAPI = {

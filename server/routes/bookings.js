@@ -1,7 +1,7 @@
 const express    = require('express');
 const supabase   = require('../config/db');
 const requireAuth = require('../middleware/auth');
-const { sendBookingConfirmation } = require('../config/mailer');
+const { sendBookingConfirmation, sendBookingStatusUpdate } = require('../config/mailer');
 const { notifyNewBooking } = require('../telegram/notify');
 const router     = express.Router();
 
@@ -91,9 +91,49 @@ router.put('/:id/status', requireAuth, async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid status' });
   }
   try {
-    const { error } = await supabase.from('spa_bookings').update({ status }).eq('id', req.params.id);
+    const { data, error } = await supabase.from('spa_bookings').update({ status }).eq('id', req.params.id).select().single();
     if (error) throw error;
-    res.json({ success: true, message: `Booking marked as ${status}` });
+
+    // Tell the customer — this is the step that was missing before: a status
+    // change used to update silently with no word back to whoever booked.
+    if (status === 'confirmed' || status === 'cancelled') {
+      sendBookingStatusUpdate({ ...data, event: status }).catch(err =>
+        console.error('[bookings] status-update email failed:', err.message));
+    }
+
+    res.json({ success: true, message: `Booking marked as ${status}`, booking: data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /api/bookings/:id/reschedule — admin moves a booking to a new date/time
+router.put('/:id/reschedule', requireAuth, async (req, res) => {
+  const { booking_date, booking_time } = req.body;
+  if (!booking_date || !booking_time) {
+    return res.status(400).json({ success: false, message: 'New date and time are required' });
+  }
+  try {
+    // A reschedule is the owner actively handling the booking, so it also
+    // counts as confirming it (matches the "Accept" outcome), unless it was
+    // already cancelled/completed.
+    const { data: existing, error: fetchErr } = await supabase
+      .from('spa_bookings').select('status').eq('id', req.params.id).single();
+    if (fetchErr) throw fetchErr;
+    const nextStatus = ['cancelled', 'completed'].includes(existing?.status) ? existing.status : 'confirmed';
+
+    const { data, error } = await supabase
+      .from('spa_bookings')
+      .update({ booking_date, booking_time, status: nextStatus })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    sendBookingStatusUpdate({ ...data, event: 'rescheduled' }).catch(err =>
+      console.error('[bookings] reschedule email failed:', err.message));
+
+    res.json({ success: true, message: 'Booking rescheduled', booking: data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

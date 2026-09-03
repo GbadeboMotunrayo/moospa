@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { authAPI, productsAPI, salesAPI, bookingsAPI, uploadAPI, dispatchAPI, spaServicesAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
+import { whatsappLinkTo } from "./config/contact";
 
 const PINK = "#e91e8c";
 const LIGHT_PINK = "#fce4f3";
@@ -61,6 +62,8 @@ export default function MooProductManager() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [reschedulingId, setReschedulingId] = useState(null);
+  const [rescheduleDraft, setRescheduleDraft] = useState({ date: "", time: "" });
 
   // Sales recording
   const [saleForm, setSaleForm] = useState({ product_id: "", quantity: "1", sale_type: "walk-in", customer_name: "", customer_phone: "" });
@@ -223,6 +226,34 @@ export default function MooProductManager() {
       setNewSpaService({ name: "", category: "Massage", duration: "60 min", price: "" });
       loadSpaServices();
     } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function updateBookingStatus(booking, status) {
+    try {
+      const { booking: updated } = await bookingsAPI.setStatus(booking.id, status);
+      setBookings(prev => prev.map(b => b.id === booking.id ? (updated || { ...b, status }) : b));
+      const labels = { confirmed: "accepted", cancelled: "cancelled", completed: "marked completed", pending: "reopened" };
+      showToast(`Booking ${labels[status] || "updated"}${booking.customer_email ? " — customer emailed" : ""}`);
+    } catch (err) {
+      showToast(err.message || "Failed to update booking", "error");
+    }
+  }
+
+  function startReschedule(booking) {
+    setReschedulingId(booking.id);
+    setRescheduleDraft({ date: booking.booking_date, time: booking.booking_time });
+  }
+
+  async function submitReschedule(booking) {
+    if (!rescheduleDraft.date || !rescheduleDraft.time) return showToast("Pick a new date and time", "error");
+    try {
+      const { booking: updated } = await bookingsAPI.reschedule(booking.id, rescheduleDraft.date, rescheduleDraft.time);
+      setBookings(prev => prev.map(b => b.id === booking.id ? (updated || { ...b, booking_date: rescheduleDraft.date, booking_time: rescheduleDraft.time, status: "confirmed" }) : b));
+      setReschedulingId(null);
+      showToast(`Booking rescheduled${booking.customer_email ? " — customer emailed" : ""}`);
+    } catch (err) {
+      showToast(err.message || "Failed to reschedule booking", "error");
+    }
   }
 
   function showToast(msg, type = "success") {
@@ -716,36 +747,52 @@ export default function MooProductManager() {
               {!loadingBookings && bookings.map(b => {
                 const statusColors = { pending: { bg: "#fff8e1", text: "#f57f17" }, confirmed: { bg: "#e8f5e9", text: "#2e7d32" }, completed: { bg: "#e3f2fd", text: "#1565c0" }, cancelled: { bg: "#fce4ec", text: "#c62828" } };
                 const sc = statusColors[b.status] || statusColors.pending;
+                const isOpen = b.status === "pending" || b.status === "confirmed";
+                const btn = (label, onClick, color) => (
+                  <button
+                    onClick={onClick}
+                    style={{ padding: "6px 12px", border: `1px solid ${color}55`, borderRadius: 6, fontSize: 12, fontWeight: 600, color, background: `${color}14`, cursor: "pointer" }}
+                  >
+                    {label}
+                  </button>
+                );
+                const waText = `Hi ${b.customer_name}, this is House of Moo regarding your ${b.service_name} booking on ${b.booking_date} at ${b.booking_time}.`;
                 return (
-                  <div key={b.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderRadius: 8, background: "#f9f9f9", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: "700", color: "#1a1a1a", fontSize: 14 }}>{b.customer_name}</div>
-                      <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{b.service_name} · {b.booking_date} at {b.booking_time}</div>
-                      <div style={{ fontSize: 12, color: "#888" }}>{b.customer_phone}{b.customer_email ? ` · ${b.customer_email}` : ""}</div>
+                  <div key={b.id} style={{ padding: "16px 20px", borderRadius: 8, background: "#f9f9f9", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: "700", color: "#1a1a1a", fontSize: 14 }}>{b.customer_name}</div>
+                        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{b.service_name} · {b.booking_date} at {b.booking_time}</div>
+                        <div style={{ fontSize: 12, color: "#888" }}>{b.customer_phone}{b.customer_email ? ` · ${b.customer_email}` : ""}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        {b.service_price && <span style={{ fontWeight: "bold", color: PINK }}>N{Number(b.service_price).toLocaleString()}</span>}
+                        <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: sc.bg, color: sc.text, textTransform: "capitalize" }}>{b.status}</span>
+                        <a href={whatsappLinkTo(b.customer_phone, waText)} target="_blank" rel="noreferrer"
+                          style={{ padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#fff", background: "#25d366", textDecoration: "none" }}
+                          title="Opens WhatsApp with a message ready to send from your own phone">
+                          WhatsApp
+                        </a>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      {b.service_price && <span style={{ fontWeight: "bold", color: PINK }}>N{Number(b.service_price).toLocaleString()}</span>}
-                      <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: sc.bg, color: sc.text, textTransform: "capitalize" }}>{b.status}</span>
-                      <select
-                        value={b.status}
-                        onChange={async e => {
-                          const status = e.target.value;
-                          try {
-                            await bookingsAPI.setStatus(b.id, status);
-                            setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status } : x));
-                            showToast("Booking status updated");
-                          } catch (err) {
-                            showToast(err.message || "Failed to update booking", "error");
-                          }
-                        }}
-                        style={{ padding: "5px 10px", border: `1px solid ${PINK}44`, borderRadius: 6, fontSize: 12, color: PINK, background: LIGHT_PINK, cursor: "pointer", outline: "none" }}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
+                    {isOpen && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                        {b.status === "pending" && btn("Accept", () => updateBookingStatus(b, "confirmed"), "#2e7d32")}
+                        {b.status === "confirmed" && btn("Mark Completed", () => updateBookingStatus(b, "completed"), "#1565c0")}
+                        {btn("Reschedule", () => startReschedule(b), PINK)}
+                        {btn("Cancel", () => updateBookingStatus(b, "cancelled"), "#c62828")}
+                      </div>
+                    )}
+                    {reschedulingId === b.id && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap", background: "#fff", padding: 10, borderRadius: 6, border: `1px solid ${PINK}33` }}>
+                        <input type="date" value={rescheduleDraft.date} onChange={e => setRescheduleDraft(d => ({ ...d, date: e.target.value }))}
+                          style={{ padding: "6px 10px", border: "1px solid #e0e0e0", borderRadius: 6, fontSize: 12 }} />
+                        <input type="time" value={rescheduleDraft.time} onChange={e => setRescheduleDraft(d => ({ ...d, time: e.target.value }))}
+                          style={{ padding: "6px 10px", border: "1px solid #e0e0e0", borderRadius: 6, fontSize: 12 }} />
+                        {btn("Save new time", () => submitReschedule(b), "#2e7d32")}
+                        {btn("Cancel edit", () => setReschedulingId(null), "#888")}
+                      </div>
+                    )}
                   </div>
                 );
               })}

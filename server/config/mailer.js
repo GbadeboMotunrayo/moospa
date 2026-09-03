@@ -54,4 +54,51 @@ async function sendOrderConfirmation({ customer_name, customer_email, reference,
   });
 }
 
-module.exports = { sendBookingConfirmation, sendOrderConfirmation };
+
+/**
+ * Sent when the OWNER/STAFF act on a booking after the fact — accept,
+ * reschedule, or cancel. sendBookingConfirmation (above) only covers the
+ * moment the customer books; this is the follow-up that was missing, which
+ * is why bookings could sit "accepted" in the admin panel with the customer
+ * never actually being told.
+ */
+async function sendBookingStatusUpdate({ customer_name, customer_email, service_name, booking_date, booking_time, event }) {
+  if (!process.env.EMAIL_USER || !customer_email) return;
+
+  const COPY = {
+    confirmed: {
+      subject: `Booking Confirmed - ${service_name} | House of Moo`,
+      heading: 'Your Booking is Confirmed!',
+      body: `Hi ${customer_name}, good news — your appointment is confirmed. See you then!`,
+    },
+    cancelled: {
+      subject: `Booking Cancelled - ${service_name} | House of Moo`,
+      heading: 'Booking Cancelled',
+      body: `Hi ${customer_name}, your appointment below has been cancelled. Message us if you'd like to rebook.`,
+    },
+    rescheduled: {
+      subject: `Booking Rescheduled - ${service_name} | House of Moo`,
+      heading: 'Your Booking Was Rescheduled',
+      body: `Hi ${customer_name}, your appointment has been moved to a new date/time — details below.`,
+    },
+  }[event];
+  if (!COPY) return;
+
+  await transporter.sendMail({
+    from: FROM, to: customer_email,
+    subject: COPY.subject,
+    html: `<div style="font-family:Arial;max-width:560px;margin:0 auto;background:#0d0d0d;color:#f5f1e8;padding:40px;border-radius:12px;">
+      <h1 style="color:#e91e8c;">House of Moo</h1>
+      <h2>${COPY.heading}</h2>
+      <p>${COPY.body}</p>
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;margin:24px 0;">
+        <p><span style="color:#888;font-size:12px;">SERVICE</span><br><strong>${service_name}</strong></p>
+        <p><span style="color:#888;font-size:12px;">DATE</span><br><strong>${booking_date}</strong></p>
+        <p><span style="color:#888;font-size:12px;">TIME</span><br><strong>${booking_time}</strong></p>
+      </div>
+      <p style="color:#888;font-size:13px;">Questions? Message us on Telegram: <a href="https://t.me/${TELEGRAM_BOT}" style="color:#229ED9;">@${TELEGRAM_BOT}</a></p>
+    </div>`,
+  });
+}
+
+module.exports = { sendBookingConfirmation, sendOrderConfirmation, sendBookingStatusUpdate };

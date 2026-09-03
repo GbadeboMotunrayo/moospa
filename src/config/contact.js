@@ -81,6 +81,29 @@ export const whatsappBackupLink = () => `https://wa.me/${WHATSAPP_NUMBER_BACKUP}
 export const whatsappMessageLink = (text, backup = false) =>
   `https://wa.me/${backup ? WHATSAPP_NUMBER_BACKUP : WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 
+/**
+ * Normalize a Nigerian-style phone number to wa.me's expected format
+ * (digits only, international, no leading "+"/"00"). Accepts spaces, dashes,
+ * a leading "+", or a bare local "0..." number. Not a validator — just enough
+ * cleanup so a customer's typed-in number turns into a working wa.me link.
+ */
+export const toIntlPhone = (phone) => {
+  let digits = String(phone || '').replace(/[^\d]/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = '234' + digits.slice(1);
+  return digits;
+};
+
+/**
+ * WhatsApp chat link TO A CUSTOMER (not the business line) with a pre-filled
+ * message — for staff to tap-and-send a booking update from their own phone.
+ * This is a manual, one-tap-per-message action (opens the staff member's own
+ * WhatsApp), not an automated push — sending unprompted business messages
+ * automatically requires Meta's WhatsApp Business API, which isn't set up.
+ */
+export const whatsappLinkTo = (phone, text) =>
+  `https://wa.me/${toIntlPhone(phone)}?text=${encodeURIComponent(text)}`;
+
 /** Plain chat link to the shop bot. */
 export const telegramLink = () => `https://t.me/${TELEGRAM_BOT}`;
 
