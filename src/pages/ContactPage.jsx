@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import TelegramIcon from '../components/TelegramIcon';
+import WhatsAppIcon from '../components/WhatsAppIcon';
+import { whatsappLink, whatsappBackupLink, WHATSAPP_DISPLAY, WHATSAPP_DISPLAY_BACKUP, WHATSAPP_GREEN, telegramLink, phoneLink, PHONE_DISPLAY, TELEGRAM_BOT, TELEGRAM_BLUE, ADDRESS } from '../config/contact';
 
 export default function ContactPage() {
   const { t, navigate } = useApp();
@@ -60,9 +63,11 @@ export default function ContactPage() {
             <div style={{ marginBottom: 40 }}>
               <h2 style={{ fontSize: 24, fontFamily: 'var(--font-display)', fontWeight: 'bold', color: t.text, marginBottom: 24 }}>Contact Information</h2>
               {[
-                { label: 'WhatsApp', value: '08106........', note: 'Fastest response', link: 'https://wa.me/2348106393774' },
-                { label: 'Phone', value: '08106........ / 07070........', note: 'Call or WhatsApp us', link: 'https://wa.me/2348106393774' },
-                { label: 'Spa Location', value: '1 Olaniyi Street, New Okooba, Abulegba, Lagos', note: 'Mon–Sat 9am–7pm' },
+                { label: 'WhatsApp', value: WHATSAPP_DISPLAY, note: 'Fastest response — main line', link: whatsappLink() },
+                { label: 'WhatsApp (Backup)', value: WHATSAPP_DISPLAY_BACKUP, note: 'If the main line is unreachable', link: whatsappBackupLink() },
+                { label: 'Telegram', value: `@${TELEGRAM_BOT}`, note: 'Also available', link: telegramLink() },
+                { label: 'Phone', value: PHONE_DISPLAY, note: 'Call us', link: phoneLink() },
+                { label: 'Spa Location', value: ADDRESS, note: 'Mon–Sat 9am–7pm' },
               ].map(c => (
                 <div key={c.label} style={{ display: 'flex', gap: 16, marginBottom: 24, padding: '18px 20px', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8 }}>
                   <div style={{ width: 44, height: 44, background: `${t.accent}18`, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -110,9 +115,14 @@ export default function ContactPage() {
                 <textarea required value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Tell us how we can help..." rows={5}
                   style={{ width: '100%', padding: '12px 14px', background: t.input, border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button type="submit" style={{ flex: 1, padding: '14px', background: t.accent, color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer' }}>Send Message</button>
-                <a href="https://wa.me/2348106393774" target="_blank" rel="noreferrer" style={{ flex: 1, padding: '14px', background: '#25d366', color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>WhatsApp</a>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button type="submit" style={{ flex: '1 1 100%', padding: '14px', background: t.accent, color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer' }}>Send Message</button>
+                <a href={whatsappLink()} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 140, padding: '14px', background: WHATSAPP_GREEN, color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <WhatsAppIcon size={17} color="white" /> WhatsApp
+                </a>
+                <a href={telegramLink()} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 140, padding: '14px', background: TELEGRAM_BLUE, color: 'white', border: 'none', borderRadius: 6, fontWeight: '700', fontSize: 15, cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <TelegramIcon size={17} color="white" /> Telegram
+                </a>
               </div>
             </form>
           </div>

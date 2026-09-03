@@ -61,8 +61,14 @@ export default function GlowButton({ children, onClick, variant = 'primary', siz
       boxShadow: hover ? '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)' : '0 4px 16px rgba(0,0,0,0.35)',
       transform: hover ? 'translateY(-2px)' : 'translateY(0)',
     },
+    telegram: {
+      background: hover ? 'linear-gradient(135deg, #2aa9e0, #1c88ba)' : '#229ED9',
+      color: 'white',
+      boxShadow: hover ? '0 8px 36px rgba(34,158,217,0.55), 0 0 48px rgba(34,158,217,0.2)' : '0 4px 20px rgba(34,158,217,0.4)',
+      transform: hover ? 'translateY(-3px) scale(1.02)' : 'translateY(0)',
+    },
     whatsapp: {
-      background: hover ? 'linear-gradient(135deg, #1aab55, #25d366)' : '#25d366',
+      background: hover ? 'linear-gradient(135deg, #2fe07a, #1ea952)' : '#25d366',
       color: 'white',
       boxShadow: hover ? '0 8px 36px rgba(37,211,102,0.55), 0 0 48px rgba(37,211,102,0.2)' : '0 4px 20px rgba(37,211,102,0.4)',
       transform: hover ? 'translateY(-3px) scale(1.02)' : 'translateY(0)',

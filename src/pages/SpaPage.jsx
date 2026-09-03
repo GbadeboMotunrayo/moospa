@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { SPA_SERVICES, TIME_SLOTS } from '../data/spaServices';
+import { TIME_SLOTS } from '../data/spaServices';
+import { useSpaServices } from '../hooks/useSpaServices';
 import { bookingsAPI } from '../services/api';
 
 export default function SpaPage() {
@@ -10,8 +11,9 @@ export default function SpaPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', date: '', time: '', notes: '' });
   const [submitted, setSubmitted] = useState(false);
 
-  const cats = ['All', ...new Set(SPA_SERVICES.map(s => s.category))];
-  const filtered = filterCat === 'All' ? SPA_SERVICES : SPA_SERVICES.filter(s => s.category === filterCat);
+  const { services } = useSpaServices();
+  const cats = ['All', ...new Set(services.map(s => s.category))];
+  const filtered = filterCat === 'All' ? services : services.filter(s => s.category === filterCat);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -161,7 +163,7 @@ export default function SpaPage() {
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
                 </div>
                 <h3 style={{ color: t.text, fontSize: 20, fontWeight: '700', marginBottom: 8 }}>Booking Received!</h3>
-                <p style={{ color: t.muted, fontSize: 14 }}>We will confirm your appointment via WhatsApp or email shortly.</p>
+                <p style={{ color: t.muted, fontSize: 14 }}>We will confirm your appointment via Telegram or email shortly.</p>
               </div>
             ) : (
               <>

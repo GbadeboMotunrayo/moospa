@@ -7,7 +7,11 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD },
 });
 
-const FROM = process.env.EMAIL_FROM || 'House of Moo <noreply@houseofmoo.com>';
+const FROM = process.env.EMAIL_FROM || 'House of Moo <noreply@houseofmoo.shop>';
+
+// Kept in step with src/config/contact.js. The old value here was a
+// placeholder (+234 800 000 0000) that shipped to real customers.
+const TELEGRAM_BOT = process.env.TELEGRAM_SHOP_BOT_USERNAME || 'HouseOfMooBot';
 
 async function sendBookingConfirmation({ customer_name, customer_email, service_name, booking_date, booking_time }) {
   if (!process.env.EMAIL_USER) return;
@@ -23,7 +27,7 @@ async function sendBookingConfirmation({ customer_name, customer_email, service_
         <p><span style="color:#888;font-size:12px;">DATE</span><br><strong>${booking_date}</strong></p>
         <p><span style="color:#888;font-size:12px;">TIME</span><br><strong>${booking_time}</strong></p>
       </div>
-      <p style="color:#888;font-size:13px;">Questions? WhatsApp: +234 800 000 0000</p>
+      <p style="color:#888;font-size:13px;">Questions? Message us on Telegram: <a href="https://t.me/${TELEGRAM_BOT}" style="color:#229ED9;">@${TELEGRAM_BOT}</a></p>
     </div>`,
   });
 }
@@ -45,6 +49,7 @@ async function sendOrderConfirmation({ customer_name, customer_email, reference,
         <tfoot><tr><td colspan="2" style="padding-top:12px;font-weight:bold;">Total</td><td style="padding-top:12px;font-weight:bold;color:#e91e8c;text-align:right;">N${Number(total).toLocaleString()}</td></tr></tfoot>
       </table>
       <p style="color:#888;font-size:13px;">Delivered in plain, discreet packaging within 24-48 hours.</p>
+      <p style="color:#888;font-size:13px;">To arrange payment or track this order, message us on Telegram: <a href="https://t.me/${TELEGRAM_BOT}?start=${encodeURIComponent(reference)}" style="color:#229ED9;">@${TELEGRAM_BOT}</a></p>
     </div>`,
   });
 }

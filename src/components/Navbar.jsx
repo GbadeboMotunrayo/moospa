@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { WHATSAPP_DISPLAY, TELEGRAM_BOT } from '../config/contact';
 
 const ANNOUNCEMENTS = [
   '✦ Discreet Packaging Guaranteed',
   '✦ 100% Authentic Products',
   '✦ Fast Nationwide Delivery within 48hrs',
-  '✦ WhatsApp Us: +234 810 639 3774',
+  `✦ Chat with us on WhatsApp — ${WHATSAPP_DISPLAY}`,
+  `✦ Also on Telegram — @${TELEGRAM_BOT}`,
   '✦ Free Consultation with Every Order',
   '✦ Trusted by 10,000+ Women Across Nigeria',
 ];

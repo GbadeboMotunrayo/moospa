@@ -13,6 +13,8 @@ const paystackRoutes = require('./routes/paystack');
 const uploadRoutes   = require('./routes/upload');
 const salesRoutes    = require('./routes/sales');
 const dispatchRoutes = require('./routes/dispatch');
+const spaServiceRoutes = require('./routes/spa-services');
+const telegramRoutes = require('./routes/telegram');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +47,15 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// ── Telegram webhooks ──
+// Mounted BEFORE the rate limiter on purpose. 200 requests per 15 minutes is a
+// sensible cap for storefront traffic and far too low for a busy group — and a
+// throttled webhook isn't just a dropped message, it's one Telegram will retry
+// in a loop. These endpoints authenticate with a shared secret header instead
+// (see routes/telegram.js), so they don't need the limiter's protection.
+// Carries its own body parser because express.json() is registered further down.
+app.use('/api/telegram', express.json({ limit: '1mb' }), telegramRoutes);
+
 // ── Rate limiting ──
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: 'Too many requests' }));
 
@@ -64,6 +75,7 @@ app.use('/api/paystack', paystackRoutes);
 app.use('/api/upload',   uploadRoutes);
 app.use('/api/sales',    salesRoutes);
 app.use('/api/dispatch', dispatchRoutes);
+app.use('/api/spa-services', spaServiceRoutes);
 
 // ── Health check ──
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import TelegramIcon from '../components/TelegramIcon';
+import WhatsAppIcon from '../components/WhatsAppIcon';
+import { whatsappLink, WHATSAPP_GREEN, telegramLink, TELEGRAM_BLUE } from '../config/contact';
 
 const FAQS = [
   { cat: 'Delivery', q: 'How long does delivery take?', a: 'Standard delivery is 24–48 hours within Lagos. Nationwide delivery takes 2–4 business days.' },
@@ -11,7 +14,7 @@ const FAQS = [
   { cat: 'Payment', q: 'What is your refund policy?', a: 'We offer refunds or exchanges within 7 days for unopened, unused products. For damaged items, contact us within 24 hours of delivery.' },
   { cat: 'Products', q: 'Are your products authentic?', a: 'Yes, 100%. All products are sourced directly from verified manufacturers. We do not sell counterfeits or replicas.' },
   { cat: 'Products', q: 'Are your skincare products suitable for dark skin?', a: 'Yes! All our skincare products are specifically formulated and tested for Nigerian and African skin tones.' },
-  { cat: 'Spa', q: 'How do I book a spa appointment?', a: 'Visit our Spa Services page and click "Book Now" on any service. Fill in the booking form and we will confirm via WhatsApp or email within 2 hours.' },
+  { cat: 'Spa', q: 'How do I book a spa appointment?', a: 'Visit our Spa Services page and click "Book Now" on any service. Fill in the booking form and we will confirm via WhatsApp, Telegram or email within 2 hours.' },
   { cat: 'Spa', q: 'Can I cancel or reschedule my spa appointment?', a: 'Yes. Please notify us at least 24 hours before your appointment via WhatsApp or phone. Late cancellations may incur a 20% fee.' },
   { cat: 'Spa', q: 'Where is the spa located?', a: 'Our spa is located at 1 Olaniyi Street, New Okooba, Abulegba, Lagos. The exact address is provided in your booking confirmation.' },
 ];
@@ -68,8 +71,9 @@ export default function FAQPage() {
         <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10, padding: '32px', textAlign: 'center', marginTop: 48 }}>
           <h3 style={{ fontSize: 20, fontWeight: '700', color: t.text, marginBottom: 8 }}>Still have questions?</h3>
           <p style={{ color: t.muted, fontSize: 14, marginBottom: 20 }}>Our team is available 24/7 on WhatsApp to help you.</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <a href="https://wa.me/2348106393774" target="_blank" rel="noreferrer" style={{ background: '#25d366', color: 'white', padding: '11px 28px', borderRadius: 6, fontWeight: '700', fontSize: 14, textDecoration: 'none' }}>Chat on WhatsApp</a>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href={whatsappLink()} target="_blank" rel="noreferrer" style={{ background: WHATSAPP_GREEN, color: 'white', padding: '11px 28px', borderRadius: 6, fontWeight: '700', fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}><WhatsAppIcon size={16} color="white" /> Chat on WhatsApp</a>
+            <a href={telegramLink()} target="_blank" rel="noreferrer" style={{ background: TELEGRAM_BLUE, color: 'white', padding: '11px 28px', borderRadius: 6, fontWeight: '700', fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}><TelegramIcon size={16} color="white" /> Chat on Telegram</a>
             <button onClick={() => navigate('contact')} style={{ background: 'transparent', color: t.accent, padding: '11px 28px', border: `2px solid ${t.accent}`, borderRadius: 6, fontWeight: '700', fontSize: 14, cursor: 'pointer' }}>Contact Us</button>
           </div>
         </div>

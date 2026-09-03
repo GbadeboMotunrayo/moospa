@@ -73,6 +73,14 @@ export const dispatchAPI = {
   remove:      (id)       => request(`/dispatch/${id}`, { method: 'DELETE', headers: authHeader() }),
 };
 
+export const spaServicesAPI = {
+  getAll:      ()         => request('/spa-services'),
+  getAllAdmin: ()         => request('/spa-services/all',   { headers: authHeader() }),
+  create:      (data)     => request('/spa-services',       { method: 'POST',   headers: authHeader(), body: JSON.stringify(data) }),
+  update:      (id, data) => request(`/spa-services/${id}`, { method: 'PUT',    headers: authHeader(), body: JSON.stringify(data) }),
+  remove:      (id)       => request(`/spa-services/${id}`, { method: 'DELETE', headers: authHeader() }),
+};
+
 export const paystackAPI = {
   initialize: (email, amount, reference, metadata) =>
     request('/paystack/initialize', { method: 'POST', body: JSON.stringify({ email, amount, reference, metadata }) }),

@@ -71,7 +71,7 @@ export default function CartPage() {
               <div key={c} style={{ padding: '3px 8px', background: t.badge, border: `1px solid ${t.border}`, borderRadius: 4, fontSize: 10, color: t.badgeText, fontWeight: '700' }}>{c}</div>
             ))}
           </div>
-          <p style={{ textAlign: 'center', fontSize: 11, color: t.muted, marginTop: 12 }}>Finish payment with us on WhatsApp. Discreet billing name.</p>
+          <p style={{ textAlign: 'center', fontSize: 11, color: t.muted, marginTop: 12 }}>Finish payment with us on WhatsApp or Telegram. Discreet billing name.</p>
         </div>
       </div>
     </div>

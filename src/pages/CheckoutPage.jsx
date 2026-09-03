@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ordersAPI, dispatchAPI } from '../services/api';
 import { trackPurchase } from '../utils/analytics';
+import TelegramIcon from '../components/TelegramIcon';
+import WhatsAppIcon from '../components/WhatsAppIcon';
+import { whatsappMessageLink, WHATSAPP_GREEN, telegramOrderLink, telegramLink, TELEGRAM_BLUE } from '../config/contact';
 
 // Local fallback if the API can't be reached — mirrors server/routes/dispatch.js defaults
 const FALLBACK_ZONES = [
@@ -86,14 +89,16 @@ export default function CheckoutPage() {
 
   const [payError, setPayError] = useState('');
 
-  const WHATSAPP_NUMBER = '2348106393774';
-
-  const handleWhatsAppCheckout = async () => {
-    if (!validate()) return;
-    setPaying(true);
-    setPayError('');
-
+  // Shared by both chat channels: saves the order (if possible), builds the
+  // human-readable summary, and hands back everything the caller needs to
+  // open its own chat link and move on to the confirmation screen.
+  const submitOrder = async () => {
+    // Whether the order actually reached Supabase decides which Telegram link
+    // we can use (WhatsApp can pre-fill text regardless, so this only matters
+    // for the Telegram fallback below). The bot identifies an order purely by
+    // its reference, so if the save failed there is nothing for it to look up.
     let reference = 'MOO-' + Date.now();
+    let saved = false;
     try {
       const result = await ordersAPI.create({
         customer_name:    form.name,
@@ -108,20 +113,50 @@ export default function CheckoutPage() {
         total,
       });
       reference = result.reference;
+      saved = true;
     } catch (err) {
-      console.error('Order save failed, continuing to WhatsApp anyway:', err);
+      console.error('Order save failed — falling back to a plain chat message:', err);
     }
 
+    // Kept for the fallback path and for the confirmation screen's copy button:
+    // if the bot can't fetch the order, the customer still has the full details
+    // in front of them and can paste them into the chat by hand. Losing the
+    // order entirely is the one outcome worth engineering around.
     const itemLines = cart.map((i, idx) => `${idx + 1}. ${i.name}${i.qty > 1 ? ` x${i.qty}` : ''} @ N${i.price.toLocaleString()}`).join('\n');
-    const message = `Hi, my name is ${form.name}, and I want to purchase the following products:\n${itemLines}\n\nSubtotal: N${cartSubtotal.toLocaleString()}\nDelivery (${form.city}): N${SHIPPING.toLocaleString()}\nTotal: N${total.toLocaleString()}\nOrder Ref: ${reference}\nDelivery to: ${form.address}, ${form.city}, ${form.state}\n\nHow do I make payment?`;
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+    const summary = `Hi, my name is ${form.name}, and I want to purchase the following products:\n${itemLines}\n\nSubtotal: N${cartSubtotal.toLocaleString()}\nDelivery (${form.city}): N${SHIPPING.toLocaleString()}\nTotal: N${total.toLocaleString()}\nOrder Ref: ${reference}\nDelivery to: ${form.address}, ${form.city}, ${form.state}\n\nHow do I make payment?`;
 
-    const completedOrder = { ref: reference, form, cart: [...cart], total, date: new Date().toLocaleDateString() };
+    return { reference, saved, summary };
+  };
+
+  const finishCheckout = ({ reference, saved, summary }, channel) => {
+    const completedOrder = { ref: reference, form, cart: [...cart], total, date: new Date().toLocaleDateString(), saved, summary, channel };
     setOrder(completedOrder);
     trackPurchase(completedOrder);
     clearCart();
     navigate('confirmation');
     setPaying(false);
+  };
+
+  const handleWhatsAppCheckout = async () => {
+    if (!validate()) return;
+    setPaying(true);
+    setPayError('');
+    const result = await submitOrder();
+    // WhatsApp pre-fills the message via `?text=`, so the customer's whole
+    // order is already typed in — no bot lookup needed, unlike Telegram.
+    window.open(whatsappMessageLink(result.summary), '_blank', 'noopener');
+    finishCheckout(result, 'whatsapp');
+  };
+
+  const handleTelegramCheckout = async () => {
+    if (!validate()) return;
+    setPaying(true);
+    setPayError('');
+    const result = await submitOrder();
+    // Telegram can't pre-fill a message, so the reference rides in through the
+    // bot's /start payload and the bot posts the summary itself.
+    window.open(result.saved ? telegramOrderLink(result.reference) : telegramLink(), '_blank', 'noopener');
+    finishCheckout(result, 'telegram');
   };
 
   return (
@@ -160,7 +195,7 @@ export default function CheckoutPage() {
                   )}
                 </select>
                 {errors.city && <div style={{ color: '#ef5350', fontSize: 11, marginTop: 4 }}>{errors.city}</div>}
-                {detectedLga && <div style={{ color: '#25d366', fontSize: 11, marginTop: 4 }}>📍 We detected your area as {detectedLga} — please confirm it's correct.</div>}
+                {detectedLga && <div style={{ color: '#4caf50', fontSize: 11, marginTop: 4 }}>📍 We detected your area as {detectedLga} — please confirm it's correct.</div>}
                 {!detectedLga && !locating && (
                   <button type="button" onClick={() => detectLocation(zones)}
                     style={{ marginTop: 6, padding: 0, background: 'none', border: 'none', color: t.accent, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
@@ -185,16 +220,31 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div style={{ background: `#25d36612`, border: `2px solid #25d366`, borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid #25d366', background: '#25d366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: `${WHATSAPP_GREEN}12`, border: `2px solid ${WHATSAPP_GREEN}`, borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${WHATSAPP_GREEN}`, background: WHATSAPP_GREEN, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'white' }}></div>
               </div>
               <div>
-                <div style={{ fontWeight: '700', color: t.text, fontSize: 14 }}>Continue on WhatsApp</div>
+                <div style={{ fontWeight: '700', color: t.text, fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <WhatsAppIcon size={16} color={WHATSAPP_GREEN} /> Continue on WhatsApp
+                </div>
                 <div style={{ fontSize: 12, color: t.muted }}>Confirm your order and pay directly with us</div>
               </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <span style={{ fontSize: 10, fontWeight: '700', color: WHATSAPP_GREEN, background: `${WHATSAPP_GREEN}18`, padding: '4px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recommended</span>
+              </div>
             </div>
-            <p style={{ fontSize: 12, color: t.muted, marginTop: 12 }}>Online card payment is coming soon. For now, place your order below and finish payment (bank transfer) with us on WhatsApp.</p>
+
+            <div style={{ background: t.badge, border: `1px solid ${t.border}`, borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${TELEGRAM_BLUE}` }} />
+              <div>
+                <div style={{ fontWeight: '700', color: t.text, fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <TelegramIcon size={16} color={TELEGRAM_BLUE} /> Continue on Telegram
+                </div>
+                <div style={{ fontSize: 12, color: t.muted }}>Also available — a good alternative if you'd like to try it</div>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: t.muted, marginTop: 12 }}>Online card payment is coming soon. For now, place your order below and finish payment (bank transfer) with us on WhatsApp — your order details are already typed in, you won't need to type anything. Prefer Telegram? Use the link under the button instead.</p>
           </div>
         </div>
 
@@ -232,11 +282,16 @@ export default function CheckoutPage() {
             </div>
             {payError && <div style={{ color: '#ef5350', fontSize: 12, marginBottom: 10, padding: '8px 12px', background: 'rgba(239,83,80,0.08)', borderRadius: 6 }}>{payError}</div>}
             <button onClick={handleWhatsAppCheckout} disabled={paying || cart.length === 0}
-              style={{ width: '100%', marginTop: 20, padding: '16px', background: paying ? '#666' : '#25d366', color: 'white', border: 'none', borderRadius: 8, fontWeight: '700', fontSize: 16, cursor: paying ? 'not-allowed' : 'pointer', transition: 'background 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.8 14.13c-.24.68-1.4 1.3-1.93 1.38-.49.08-1.11.11-1.79-.11-.41-.13-.94-.3-1.62-.6-2.85-1.23-4.71-4.1-4.85-4.29-.14-.19-1.16-1.54-1.16-2.94s.73-2.09.99-2.38c.26-.28.56-.35.75-.35.19 0 .38 0 .54.01.17.01.41-.06.64.49.24.57.81 1.98.88 2.12.07.14.12.31.02.5-.09.19-.14.31-.28.47-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.52 1.9 1.05.94 1.93 1.23 2.21 1.37.28.14.44.12.61-.07.16-.19.7-.81.89-1.09.19-.28.38-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+              style={{ width: '100%', marginTop: 20, padding: '16px', background: paying ? '#666' : WHATSAPP_GREEN, color: 'white', border: 'none', borderRadius: 8, fontWeight: '700', fontSize: 16, cursor: paying ? 'not-allowed' : 'pointer', transition: 'background 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <WhatsAppIcon size={18} color="white" />
               {paying ? 'Placing order...' : 'Continue on WhatsApp'}
             </button>
-            <div style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: t.muted }}>We'll open WhatsApp with your order details so you can arrange payment with us directly.</div>
+            <div style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: t.muted }}>We'll open WhatsApp with your order already typed in — just hit send.</div>
+            <button onClick={handleTelegramCheckout} disabled={paying || cart.length === 0}
+              style={{ width: '100%', marginTop: 10, padding: '12px', background: 'transparent', color: TELEGRAM_BLUE, border: `1px solid ${TELEGRAM_BLUE}`, borderRadius: 8, fontWeight: '700', fontSize: 13, cursor: paying ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <TelegramIcon size={14} color={TELEGRAM_BLUE} />
+              Or continue on Telegram instead
+            </button>
           </div>
         </div>
       </div>

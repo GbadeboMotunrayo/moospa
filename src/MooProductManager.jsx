@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authAPI, productsAPI, salesAPI, bookingsAPI, uploadAPI, dispatchAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
+import { authAPI, productsAPI, salesAPI, bookingsAPI, uploadAPI, dispatchAPI, spaServicesAPI, setToken, clearToken, getToken, setRole, getRole, clearRole } from "./services/api";
 
 const PINK = "#e91e8c";
 const LIGHT_PINK = "#fce4f3";
@@ -25,6 +25,9 @@ const ICONS = {
   ),
   dispatch: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+  ),
+  spaPrices: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41 13.41 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>
   ),
 };
 
@@ -76,6 +79,13 @@ export default function MooProductManager() {
   const [zoneEdits, setZoneEdits] = useState({});
   const [newZone, setNewZone] = useState({ lga: "", price: "", category: "Lagos" });
 
+  // Spa service prices (admin only)
+  const [spaServices, setSpaServices] = useState([]);
+  const [loadingSpaServices, setLoadingSpaServices] = useState(false);
+  const [spaServicesError, setSpaServicesError] = useState("");
+  const [spaServiceEdits, setSpaServiceEdits] = useState({});
+  const [newSpaService, setNewSpaService] = useState({ name: "", category: "Massage", duration: "60 min", price: "" });
+
   const isAdmin = role === "admin";
 
   function loadProducts() {
@@ -115,6 +125,7 @@ export default function MooProductManager() {
       authAPI.getStaff().then(d => setStaff(d.staff || [])).catch(() => {}).finally(() => setLoadingStaff(false));
     }
     if (activeTab === "dispatch" && isAdmin) loadZones();
+    if (activeTab === "spaPrices" && isAdmin) loadSpaServices();
   }, [activeTab, screen, isAdmin]);
 
   function loadZones() {
@@ -162,6 +173,55 @@ export default function MooProductManager() {
       showToast(`${newZone.lga.trim()} added`);
       setNewZone({ lga: "", price: "", category: "Lagos" });
       loadZones();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  function loadSpaServices() {
+    setLoadingSpaServices(true);
+    setSpaServicesError("");
+    spaServicesAPI.getAllAdmin()
+      .then(d => { setSpaServices(d.services || []); setSpaServiceEdits({}); })
+      .catch(err => setSpaServicesError(err.message))
+      .finally(() => setLoadingSpaServices(false));
+  }
+
+  async function saveSpaServicePrice(service) {
+    const price = spaServiceEdits[service.id];
+    if (price === undefined || price === "" || isNaN(Number(price))) return showToast("Enter a valid price", "error");
+    try {
+      await spaServicesAPI.update(service.id, { price: Number(price) });
+      showToast(`${service.name} updated`);
+      loadSpaServices();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function toggleSpaService(service) {
+    try {
+      await spaServicesAPI.update(service.id, { active: !service.active });
+      loadSpaServices();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function deleteSpaService(service) {
+    try {
+      await spaServicesAPI.remove(service.id);
+      showToast(`${service.name} removed`);
+      loadSpaServices();
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  async function addSpaService() {
+    if (!newSpaService.name.trim() || newSpaService.price === "" || isNaN(Number(newSpaService.price))) return showToast("Service name and price required", "error");
+    try {
+      await spaServicesAPI.create({
+        name: newSpaService.name.trim(),
+        category: newSpaService.category,
+        duration: newSpaService.duration,
+        price: Number(newSpaService.price),
+      });
+      showToast(`${newSpaService.name.trim()} added`);
+      setNewSpaService({ name: "", category: "Massage", duration: "60 min", price: "" });
+      loadSpaServices();
     } catch (err) { showToast(err.message, "error"); }
   }
 
@@ -375,6 +435,7 @@ export default function MooProductManager() {
     { id: "products", icon: ICONS.products, label: "Products" },
     { id: "sales", icon: ICONS.sales, label: "Record Sale" },
     ...(isAdmin ? [{ id: "spa", icon: ICONS.spa, label: "Spa Bookings" }] : []),
+    ...(isAdmin ? [{ id: "spaPrices", icon: ICONS.spaPrices, label: "Spa Prices" }] : []),
     ...(isAdmin ? [{ id: "dispatch", icon: ICONS.dispatch, label: "Dispatch Prices" }] : []),
     ...(isAdmin ? [{ id: "staff", icon: ICONS.staff, label: "Staff" }] : []),
   ];
@@ -429,6 +490,7 @@ export default function MooProductManager() {
               {activeTab === "products" && "Products & Stock"}
               {activeTab === "sales" && "Record a Sale"}
               {activeTab === "spa" && "Spa Bookings"}
+              {activeTab === "spaPrices" && "Spa Prices"}
               {activeTab === "dispatch" && "Dispatch Prices & Locations"}
               {activeTab === "staff" && "Sales Attendants"}
             </div>
@@ -687,6 +749,107 @@ export default function MooProductManager() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {activeTab === "spaPrices" && isAdmin && (
+            <div>
+              <div style={{ background: "white", borderRadius: 12, padding: "16px 20px", border: "1px solid #eee", marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ flex: 2, minWidth: 160 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>SERVICE NAME</div>
+                  <input value={newSpaService.name} onChange={e => setNewSpaService(z => ({ ...z, name: e.target.value }))} placeholder="e.g. Hot Stone Massage"
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>CATEGORY</div>
+                  <select value={newSpaService.category} onChange={e => setNewSpaService(z => ({ ...z, category: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box", background: "white" }}>
+                    <option value="Massage">Massage</option>
+                    <option value="Facial">Facial</option>
+                    <option value="Treatment">Treatment</option>
+                    <option value="Nails">Nails</option>
+                    <option value="Package">Package</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1, minWidth: 110 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>DURATION</div>
+                  <input value={newSpaService.duration} onChange={e => setNewSpaService(z => ({ ...z, duration: e.target.value }))} placeholder="60 min"
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 120 }}>
+                  <div style={{ fontSize: 11, color: "#888", fontWeight: "bold", letterSpacing: 1, marginBottom: 6 }}>PRICE (N)</div>
+                  <input type="number" value={newSpaService.price} onChange={e => setNewSpaService(z => ({ ...z, price: e.target.value }))} placeholder="30000"
+                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <button onClick={addSpaService}
+                  style={{ padding: "10px 20px", background: PINK, border: "none", borderRadius: 8, color: "white", fontWeight: "bold", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  {ICONS.plus} Add Service
+                </button>
+              </div>
+
+              {loadingSpaServices && <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading spa prices...</div>}
+              {spaServicesError && (
+                <div style={{ background: "#fff3e0", border: "1px solid #ffcc80", borderRadius: 8, padding: "14px 18px", color: "#e65100", fontSize: 13, marginBottom: 16 }}>
+                  {spaServicesError}
+                </div>
+              )}
+
+              <div style={{ background: "white", borderRadius: 12, border: "1px solid #eee", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#f9f9f9" }}>
+                      {["Service", "Category", "Duration", "Price", "Status", "Actions"].map(h => (
+                        <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontSize: 12, color: "#888", fontWeight: "bold", letterSpacing: 1, borderBottom: "1px solid #eee" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spaServices.map(sv => (
+                      <tr key={sv.id} style={{ borderBottom: "1px solid #f5f5f5", opacity: sv.active ? 1 : 0.5 }}>
+                        <td style={{ padding: "14px 20px", fontWeight: "600", fontSize: 14, color: "#1a1a1a" }}>{sv.name}</td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: LIGHT_PINK, color: PINK }}>
+                            {sv.category}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 20px", fontSize: 13, color: "#666" }}>{sv.duration}</td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <input type="number" value={spaServiceEdits[sv.id] ?? Number(sv.price)}
+                            onChange={e => setSpaServiceEdits(ed => ({ ...ed, [sv.id]: e.target.value }))}
+                            style={{ width: 110, padding: "8px 12px", border: `1px solid ${spaServiceEdits[sv.id] !== undefined ? PINK : "#e0e0e0"}`, borderRadius: 6, fontSize: 14, fontWeight: "bold", color: PINK, outline: "none" }} />
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "bold", background: sv.active ? "#e8f5e9" : "#f5f5f5", color: sv.active ? "#2e7d32" : "#888" }}>
+                            {sv.active ? "Active" : "Hidden"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button onClick={() => saveSpaServicePrice(sv)} disabled={spaServiceEdits[sv.id] === undefined}
+                              style={{ padding: "6px 14px", background: spaServiceEdits[sv.id] !== undefined ? LIGHT_PINK : "#f5f5f5", border: `1px solid ${spaServiceEdits[sv.id] !== undefined ? PINK + "44" : "#eee"}`, borderRadius: 6, color: spaServiceEdits[sv.id] !== undefined ? PINK : "#bbb", fontSize: 12, fontWeight: "bold", cursor: spaServiceEdits[sv.id] !== undefined ? "pointer" : "default" }}>
+                              Save
+                            </button>
+                            <button onClick={() => toggleSpaService(sv)}
+                              style={{ padding: "6px 14px", background: "#e3f2fd", border: "1px solid #2196F344", borderRadius: 6, color: "#1565c0", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>
+                              {sv.active ? "Hide" : "Show"}
+                            </button>
+                            <button onClick={() => deleteSpaService(sv)}
+                              style={{ padding: "6px 14px", background: "#fce4ec", border: "1px solid #f4849044", borderRadius: 6, color: "#c62828", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!loadingSpaServices && !spaServicesError && spaServices.length === 0 && (
+                  <div style={{ padding: 40, textAlign: "center", color: "#aaa" }}>No spa services yet. Add one above.</div>
+                )}
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#aaa" }}>
+                Customers see active services with their prices on the Spa page. "Hide" removes a service without deleting it.
+              </div>
             </div>
           )}
 
